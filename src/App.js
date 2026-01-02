@@ -582,9 +582,59 @@ const ConoceMasPage = () => {
   );
 };
 
-// Componente SolicitaAtencionPage CORREGIDO (ACCEESO PÚBLICO - sin verificación de autenticación)
+// Componente para notificación flotante
+const NotificationBanner = ({ notification, onClose }) => {
+  if (!notification.show) return null;
+
+  const bgColors = {
+    success: 'bg-success',
+    error: 'bg-danger',
+    warning: 'bg-warning',
+    info: 'bg-info'
+  };
+
+  const textColors = {
+    success: 'text-white',
+    error: 'text-white',
+    warning: 'text-dark',
+    info: 'text-white'
+  };
+
+  const bgClass = bgColors[notification.type] || 'bg-info';
+  const textClass = textColors[notification.type] || 'text-white';
+
+  return (
+    <div
+      className={`${bgClass} ${textClass} p-3 rounded shadow-lg position-fixed top-0 start-50 translate-middle-x mt-3 z-3 animate__animated animate__fadeInDown`}
+      style={{
+        minWidth: '300px',
+        maxWidth: '500px',
+        zIndex: 9999,
+        animationDuration: '0.5s'
+      }}
+    >
+      <div className="d-flex align-items-center">
+        <div className="flex-grow-1">
+          <div className="d-flex align-items-center mb-1">
+            <i className={`bi ${notification.icon} fs-4 me-2`}></i>
+            <h6 className="mb-0 fw-bold">{notification.title}</h6>
+          </div>
+          <p className="mb-0 small">{notification.message}</p>
+        </div>
+        <button
+          type="button"
+          className="btn-close btn-close-white ms-3"
+          onClick={onClose}
+          aria-label="Cerrar"
+        ></button>
+      </div>
+    </div>
+  );
+};
+
+// Componente SolicitaAtencionPage con sistema completo de notificaciones
 const SolicitaAtencionPage = () => {
-  // Estado inicial vacío - HOOKS AL INICIO
+  // Estado inicial vacío
   const initialFormData = {
     nombre_contacto: '',
     telefono: '',
@@ -601,8 +651,221 @@ const SolicitaAtencionPage = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [debugInfo, setDebugInfo] = useState('');
 
+  // Estados para validación de backend y notificaciones
+  const [backendStatus, setBackendStatus] = useState({
+    connected: false,
+    checking: true,
+    lastChecked: null,
+    responseTime: null,
+    endpoint: '',
+    status: 'unknown'
+  });
+
+  const [notification, setNotification] = useState({
+    show: false,
+    type: 'info',
+    title: '',
+    message: '',
+    icon: ''
+  });
+
+  // URL del backend
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api/solicitudes';
+
+  // Función para mostrar notificaciones
+  const showNotification = (type, title, message, duration = 5000) => {
+    const icons = {
+      success: 'bi-check-circle-fill',
+      error: 'bi-exclamation-triangle-fill',
+      warning: 'bi-exclamation-circle-fill',
+      info: 'bi-info-circle-fill'
+    };
+
+    setNotification({
+      show: true,
+      type,
+      title,
+      message,
+      icon: icons[type]
+    });
+
+    if (duration > 0) {
+      setTimeout(() => {
+        setNotification(prev => ({ ...prev, show: false }));
+      }, duration);
+    }
+  };
+
+  // Función para ocultar notificación
+  const hideNotification = () => {
+    setNotification(prev => ({ ...prev, show: false }));
+  };
+
+  // Función para verificar el estado del backend
+  const checkBackendConnection = async (showNotification = true) => {
+    const startTime = Date.now();
+
+    try {
+      setBackendStatus(prev => ({
+        ...prev,
+        checking: true,
+        connected: false
+      }));
+
+      if (showNotification) {
+        showNotification('info', 'Verificando conexión', 'Conectando con el servidor backend...', 3000);
+      }
+
+      // Primero intentar endpoint de salud
+      const healthUrl = API_URL.replace('/solicitudes', '') + '/health';
+      const response = await fetch(healthUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      const responseTime = Date.now() - startTime;
+
+      if (response.ok) {
+        const wasPreviouslyDisconnected = !backendStatus.connected;
+
+        setBackendStatus({
+          connected: true,
+          checking: false,
+          lastChecked: new Date(),
+          responseTime: responseTime,
+          endpoint: API_URL,
+          status: 'connected'
+        });
+
+        console.log(`✅ Backend conectado en ${responseTime}ms`);
+
+        if (showNotification) {
+          if (wasPreviouslyDisconnected) {
+            showNotification(
+              'success',
+              '¡Conexión establecida!',
+              `Backend conectado exitosamente (${responseTime}ms)`,
+              4000
+            );
+          } else {
+            showNotification(
+              'success',
+              'Conexión verificada',
+              `El servidor está respondiendo correctamente (${responseTime}ms)`,
+              3000
+            );
+          }
+        }
+
+        setDebugInfo(`Backend disponible (${responseTime}ms)`);
+        return true;
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.log('Intentando endpoint alternativo...');
+      return await checkAlternativeEndpoint(startTime, showNotification);
+    }
+  };
+
+  // Función alternativa para verificar conexión
+  const checkAlternativeEndpoint = async (startTime, showNotification = true) => {
+    try {
+      const response = await fetch(API_URL, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      const responseTime = Date.now() - startTime;
+
+      if (response.status === 200 || response.status === 201 || response.status === 405) {
+        const wasPreviouslyDisconnected = !backendStatus.connected;
+
+        setBackendStatus({
+          connected: true,
+          checking: false,
+          lastChecked: new Date(),
+          responseTime: responseTime,
+          endpoint: API_URL,
+          status: 'available'
+        });
+
+        console.log(`✅ Backend disponible en endpoint principal (${responseTime}ms)`);
+
+        if (showNotification && wasPreviouslyDisconnected) {
+          showNotification(
+            'success',
+            '¡Conexión recuperada!',
+            `Backend disponible en endpoint alternativo (${responseTime}ms)`,
+            4000
+          );
+        }
+
+        setDebugInfo(`Backend disponible (${responseTime}ms)`);
+        return true;
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (altError) {
+      const responseTime = Date.now() - startTime;
+      const wasPreviouslyConnected = backendStatus.connected;
+
+      setBackendStatus({
+        connected: false,
+        checking: false,
+        lastChecked: new Date(),
+        responseTime: responseTime,
+        endpoint: API_URL,
+        error: altError.message,
+        status: 'disconnected'
+      });
+
+      console.error('❌ Error conectando al backend:', altError);
+
+      if (showNotification) {
+        if (wasPreviouslyConnected) {
+          showNotification(
+            'error',
+            '¡Conexión perdida!',
+            'El servidor backend no está disponible. Verifica que esté corriendo.',
+            6000
+          );
+        } else {
+          showNotification(
+            'warning',
+            'Servidor no disponible',
+            `No se puede conectar al backend en ${API_URL}`,
+            5000
+          );
+        }
+      }
+
+      return false;
+    }
+  };
+
+  // Verificar si el backend está disponible al cargar el componente
+  useEffect(() => {
+    const initialCheck = async () => {
+      await checkBackendConnection(false);
+    };
+    initialCheck();
+
+    // Verificar periódicamente
+    const interval = setInterval(() => {
+      if (!backendStatus.checking) {
+        checkBackendConnection(false);
+      }
+    }, 45000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -622,6 +885,7 @@ const SolicitaAtencionPage = () => {
     e.preventDefault();
 
     console.log('🟡 Iniciando envío del formulario...');
+    console.log('🌐 URL del backend:', API_URL);
 
     // Validación básica
     if (!formData.termsAccepted) {
@@ -629,8 +893,58 @@ const SolicitaAtencionPage = () => {
       return;
     }
 
+    // Validar campos obligatorios
+    const camposRequeridos = [
+      'nombre_contacto',
+      'telefono',
+      'email',
+      'nombre_paciente',
+      'edad_paciente',
+      'tipo_servicio',
+      'description'
+    ];
+
+    for (const campo of camposRequeridos) {
+      if (!formData[campo]) {
+        const campoNombre = campo.replace('_', ' ');
+        setError(`El campo "${campoNombre}" es obligatorio`);
+        return;
+      }
+    }
+
+    // Validar email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Por favor, introduce un email válido');
+      return;
+    }
+
+    // Verificar conexión al backend antes de enviar
+    if (!backendStatus.connected) {
+      showNotification(
+        'warning',
+        'Verificando conexión',
+        'Intentando conectar con el servidor antes de enviar...',
+        3000
+      );
+
+      const isConnected = await checkBackendConnection(false);
+
+      if (!isConnected) {
+        setError(`No se pudo conectar con el servidor. Verifica que el backend esté corriendo en: ${API_URL}`);
+        showNotification(
+          'error',
+          'Error de conexión',
+          'No se puede conectar al servidor. Verifica que esté corriendo.',
+          5000
+        );
+        return;
+      }
+    }
+
     setIsLoading(true);
     setError('');
+    setDebugInfo('Enviando datos...');
 
     const submissionData = {
       nombre_contacto: formData.nombre_contacto.trim(),
@@ -640,88 +954,280 @@ const SolicitaAtencionPage = () => {
       edad_paciente: parseInt(formData.edad_paciente) || 0,
       tipo_servicio: formData.tipo_servicio,
       urgencia: formData.urgencia,
-      description: formData.description.trim()
+      description: formData.description.trim(),
+      estado: 'pendiente',
+      fecha_creacion: new Date().toISOString()
     };
 
     console.log('📤 DATOS A ENVIAR AL BACKEND:', submissionData);
 
     try {
+      showNotification(
+        'info',
+        'Enviando solicitud',
+        'Procesando tu solicitud, por favor espera...',
+        0
+      );
+
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify(submissionData)
       });
 
       console.log('📨 Respuesta del backend - Status:', response.status);
 
-      // INMEDIATAMENTE: Resetear formulario y mostrar éxito
+      if (!response.ok) {
+        let errorMessage = `Error del servidor: ${response.status}`;
+
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch {
+          // Ignorar error de parseo
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      const responseData = await response.json();
+      console.log('✅ Solicitud procesada exitosamente:', responseData);
+
+      // Resetear formulario
       resetForm();
       setIsSubmitted(true);
+      setDebugInfo('✅ Solicitud enviada exitosamente');
 
-      // Ocultar mensaje de éxito después de 5 segundos
+      // Mostrar notificación de éxito
+      hideNotification();
+      showNotification(
+        'success',
+        '¡Solicitud enviada!',
+        'Tu solicitud ha sido registrada exitosamente en nuestra base de datos.',
+        5000
+      );
+
+      // Ocultar mensaje de éxito del formulario después de 5 segundos
       setTimeout(() => {
         setIsSubmitted(false);
       }, 5000);
-
-      // Verificar si hubo error en el backend
-      if (!response.ok) {
-        try {
-          const errorData = await response.json();
-          console.error('❌ Error del backend:', errorData);
-        } catch {
-          console.error('❌ Error del backend sin detalles');
-        }
-      } else {
-        console.log('✅ Solicitud procesada por el backend');
-      }
 
     } catch (error) {
       console.error('❌ Error completo en el envío:', error);
 
-      // Aún así resetear el formulario
-      resetForm();
-      setIsSubmitted(true);
+      hideNotification();
 
-      setTimeout(() => {
-        setIsSubmitted(false);
-      }, 5000);
+      let mensajeError = `Error al enviar la solicitud: ${error.message}`;
+      let notificationType = 'error';
+      let notificationTitle = 'Error al enviar';
+
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        mensajeError = `No se pudo conectar con el servidor. Verifica que el backend esté corriendo en: ${API_URL}`;
+        notificationTitle = 'Error de conexión';
+
+        // Actualizar estado de conexión
+        setBackendStatus(prev => ({ ...prev, connected: false }));
+
+        // Mostrar notificación de reconexión
+        setTimeout(() => {
+          showNotification(
+            'warning',
+            'Intentando reconectar',
+            'Verificando conexión con el servidor...',
+            3000
+          );
+          checkBackendConnection(false);
+        }, 2000);
+      }
+
+      setError(mensajeError);
+      setDebugInfo(`❌ Error: ${error.message}`);
+
+      showNotification(
+        notificationType,
+        notificationTitle,
+        'Hubo un problema al procesar tu solicitud. Por favor, intenta nuevamente.',
+        6000
+      );
 
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Función para forzar verificación de backend
+  const forceBackendCheck = async () => {
+    setError('');
+    setDebugInfo('Verificando conexión al backend...');
+    await checkBackendConnection(true);
+  };
+
+  // Función para cargar datos de prueba
+  const loadTestData = () => {
+    setFormData({
+      nombre_contacto: 'Juan Pérez',
+      telefono: '612-345-678',
+      email: 'juan@ejemplo.com',
+      nombre_paciente: 'María Pérez',
+      edad_paciente: '75',
+      tipo_servicio: 'Cuidado Básico',
+      urgencia: 'Normal',
+      description: 'Paciente necesita cuidados básicos diarios para actividades cotidianas',
+      termsAccepted: true
+    });
+    setError('');
+    showNotification('info', 'Datos de prueba cargados', 'Puedes editar los campos o enviar directamente.', 3000);
+  };
+
   return (
     <div className="page-content">
+      {/* Notificación flotante */}
+      <NotificationBanner notification={notification} onClose={hideNotification} />
+
       <div className="container py-5">
         <div className="row">
-          <div className="col-lg-8 mx-auto">
+          <div className="col-lg-10 mx-auto">
             <h1 className="display-4 fw-bold mb-4 text-center">
               <i className="bi bi-clipboard-plus text-primary me-2"></i>
               Solicitar Atención
             </h1>
 
-            {/* Información para usuarios no autenticados */}
+            {/* Banner de estado de conexión */}
+            <div className={`alert mb-4 ${backendStatus.connected ? 'alert-success' : 'alert-danger'} border-0 shadow-sm`}>
+              <div className="d-flex justify-content-between align-items-center">
+                <div className="d-flex align-items-center">
+                  <div className="me-3">
+                    <div className={`p-2 rounded-circle ${backendStatus.connected ? 'bg-success' : 'bg-danger'}`}>
+                      <i className={`bi ${backendStatus.connected ? 'bi-plug' : 'bi-plug-fill'} text-white`}></i>
+                    </div>
+                  </div>
+                  <div>
+                    <h6 className="mb-1">
+                      {backendStatus.connected ? '✅ Servidor Conectado' : '❌ Servidor Desconectado'}
+                    </h6>
+                    <p className="mb-0 small">
+                      {backendStatus.connected
+                        ? `Backend disponible${backendStatus.responseTime ? ` (${backendStatus.responseTime}ms)` : ''}`
+                        : `No se puede conectar al servidor en ${API_URL}`}
+                    </p>
+                    {backendStatus.lastChecked && (
+                      <p className="mb-0 small text-muted">
+                        <i className="bi bi-clock-history me-1"></i>
+                        Última verificación: {backendStatus.lastChecked.toLocaleTimeString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <button
+                    className={`btn btn-sm ${backendStatus.connected ? 'btn-outline-success' : 'btn-outline-danger'}`}
+                    onClick={forceBackendCheck}
+                    disabled={backendStatus.checking}
+                  >
+                    {backendStatus.checking ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-1"></span>
+                        Verificando...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-arrow-clockwise me-1"></i>
+                        Verificar Conexión
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Indicadores de estado */}
+            <div className="row mb-4">
+              <div className="col-md-6">
+                <div className="card border-0 shadow-sm mb-3">
+                  <div className="card-body">
+                    <h6 className="card-title">
+                      <i className="bi bi-hdd-network text-primary me-2"></i>
+                      Estado del Servidor
+                    </h6>
+                    <div className="d-flex align-items-center mt-3">
+                      <div className={`me-3 ${backendStatus.connected ? 'text-success' : 'text-danger'}`}>
+                        <i className={`bi ${backendStatus.connected ? 'bi-wifi' : 'bi-wifi-off'} fs-1`}></i>
+                      </div>
+                      <div>
+                        <h4 className={`mb-0 ${backendStatus.connected ? 'text-success' : 'text-danger'}`}>
+                          {backendStatus.connected ? 'ONLINE' : 'OFFLINE'}
+                        </h4>
+                        <small className="text-muted">
+                          {backendStatus.connected
+                            ? 'El servidor está funcionando correctamente'
+                            : 'El servidor no está disponible'}
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-6">
+                <div className="card border-0 shadow-sm mb-3">
+                  <div className="card-body">
+                    <h6 className="card-title">
+                      <i className="bi bi-speedometer2 text-primary me-2"></i>
+                      Rendimiento
+                    </h6>
+                    <div className="mt-3">
+                      {backendStatus.responseTime ? (
+                        <>
+                          <div className="d-flex justify-content-between mb-1">
+                            <span>Tiempo de respuesta:</span>
+                            <span className="fw-bold">{backendStatus.responseTime}ms</span>
+                          </div>
+                          <div className="progress" style={{ height: '8px' }}>
+                            <div
+                              className={`progress-bar ${backendStatus.responseTime < 100 ? 'bg-success' : backendStatus.responseTime < 500 ? 'bg-warning' : 'bg-danger'}`}
+                              role="progressbar"
+                              style={{ width: `${Math.min(backendStatus.responseTime / 10, 100)}%` }}
+                            ></div>
+                          </div>
+                          <small className="text-muted mt-2 d-block">
+                            {backendStatus.responseTime < 100 ? 'Excelente' :
+                              backendStatus.responseTime < 500 ? 'Aceptable' : 'Lento'}
+                          </small>
+                        </>
+                      ) : (
+                        <p className="text-muted mb-0">No hay datos de rendimiento disponibles</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Información para usuarios */}
             <div className="alert alert-info mb-4">
               <h5>
                 <i className="bi bi-info-circle me-2"></i>
                 Acceso Público
               </h5>
               <p className="mb-0">
-                Cualquier persona puede solicitar atención médica. Si ya tienes una cuenta, puedes 
-                <Link to="/login" className="text-decoration-none fw-bold ms-1">iniciar sesión</Link> 
+                Cualquier persona puede solicitar atención médica. Si ya tienes una cuenta, puedes
+                <Link to="/login" className="text-decoration-none fw-bold ms-1">iniciar sesión</Link>
                 {' '}para acceder a más funcionalidades.
               </p>
             </div>
 
-            {/* Mensaje de éxito (aparece INMEDIATAMENTE después de enviar) */}
+            {/* Mensaje de éxito */}
             {isSubmitted && (
               <div className="alert alert-success alert-dismissible fade show mb-4" role="alert">
                 <i className="bi bi-check-circle-fill fs-4 me-2"></i>
                 <strong>¡Solicitud Registrada Exitosamente!</strong>
-                <p className="mb-0 mt-2">Tu solicitud ha sido enviada correctamente. Nos pondremos en contacto contigo a la brevedad.</p>
+                <p className="mb-0 mt-2">Tu solicitud ha sido enviada correctamente a nuestra base de datos. Nos pondremos en contacto contigo a la brevedad.</p>
+                <p className="mb-0 mt-2 small">
+                  <i className="bi bi-info-circle me-1"></i>
+                  ID de referencia: SOL-{Date.now().toString().slice(-6)}
+                </p>
                 <button
                   type="button"
                   className="btn-close"
@@ -731,35 +1237,21 @@ const SolicitaAtencionPage = () => {
               </div>
             )}
 
-            {/* Botón para cargar datos de prueba */}
+            {/* Botones de utilidad */}
             <div className="mb-4 text-center">
               <button
-                className="btn btn-warning btn-sm"
-                onClick={() => {
-                  setFormData({
-                    nombre_contacto: 'Juan Pérez',
-                    telefono: '612-345-678',
-                    email: 'juan@ejemplo.com',
-                    nombre_paciente: 'María Pérez',
-                    edad_paciente: '75',
-                    tipo_servicio: 'Cuidado Básico',
-                    urgencia: 'Normal',
-                    description: 'Paciente necesita cuidados básicos diarios para actividades cotidianas',
-                    termsAccepted: true
-                  });
-                  setError('');
-                }}
+                className="btn btn-warning btn-sm me-2"
+                onClick={loadTestData}
+                disabled={isLoading}
               >
                 <i className="bi bi-lightning-charge me-2"></i>
                 Cargar Datos de Prueba
               </button>
-            </div>
 
-            {/* Botón para limpiar formulario */}
-            <div className="mb-4 text-center">
               <button
                 className="btn btn-outline-secondary btn-sm"
                 onClick={resetForm}
+                disabled={isLoading}
               >
                 <i className="bi bi-eraser me-2"></i>
                 Limpiar Formulario
@@ -770,13 +1262,24 @@ const SolicitaAtencionPage = () => {
             {error && (
               <div className="alert alert-danger alert-dismissible fade show mb-4" role="alert">
                 <i className="bi bi-exclamation-triangle-fill me-2"></i>
-                <strong>Error:</strong> {error}
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setError('')}
-                  aria-label="Cerrar"
-                ></button>
+                <strong>Error al enviar la solicitud:</strong>
+                <p className="mb-0 mt-2">{error}</p>
+                <div className="mt-3">
+                  <h6>Solución de problemas:</h6>
+                  <ol className="mb-0 small">
+                    <li>Asegúrate de que el backend esté corriendo en el puerto 3001</li>
+                    <li>Verifica que todos los campos estén completos</li>
+                    <li>Revisa la consola del navegador (F12) para más detalles</li>
+                  </ol>
+                </div>
+                <div className="mt-2">
+                  <button
+                    className="btn btn-sm btn-outline-danger"
+                    onClick={() => setError('')}
+                  >
+                    Cerrar
+                  </button>
+                </div>
               </div>
             )}
 
@@ -789,6 +1292,7 @@ const SolicitaAtencionPage = () => {
                   <div className="row g-3">
                     <div className="col-md-6">
                       <label className="form-label">
+                        <i className="bi bi-person me-1"></i>
                         Nombre del Contacto *
                       </label>
                       <input
@@ -805,6 +1309,7 @@ const SolicitaAtencionPage = () => {
 
                     <div className="col-md-6">
                       <label className="form-label">
+                        <i className="bi bi-telephone me-1"></i>
                         Teléfono de Contacto *
                       </label>
                       <input
@@ -821,6 +1326,7 @@ const SolicitaAtencionPage = () => {
 
                     <div className="col-12">
                       <label className="form-label">
+                        <i className="bi bi-envelope me-1"></i>
                         Email *
                       </label>
                       <input
@@ -837,6 +1343,7 @@ const SolicitaAtencionPage = () => {
 
                     <div className="col-md-6">
                       <label className="form-label">
+                        <i className="bi bi-person-heart me-1"></i>
                         Nombre del Paciente *
                       </label>
                       <input
@@ -853,6 +1360,7 @@ const SolicitaAtencionPage = () => {
 
                     <div className="col-md-6">
                       <label className="form-label">
+                        <i className="bi bi-calendar3 me-1"></i>
                         Edad del Paciente *
                       </label>
                       <input
@@ -871,6 +1379,7 @@ const SolicitaAtencionPage = () => {
 
                     <div className="col-md-6">
                       <label className="form-label">
+                        <i className="bi bi-heart-pulse me-1"></i>
                         Tipo de Servicio *
                       </label>
                       <select
@@ -893,6 +1402,7 @@ const SolicitaAtencionPage = () => {
 
                     <div className="col-md-6">
                       <label className="form-label">
+                        <i className="bi bi-clock me-1"></i>
                         Urgencia *
                       </label>
                       <select
@@ -903,13 +1413,14 @@ const SolicitaAtencionPage = () => {
                         disabled={isLoading}
                         required
                       >
-                        <option value="Normal">Normal</option>
-                        <option value="Urgente">Urgente</option>
+                        <option value="Normal">Normal (24-48 horas)</option>
+                        <option value="Urgente">Urgente (menos de 24 horas)</option>
                       </select>
                     </div>
 
                     <div className="col-12">
                       <label className="form-label">
+                        <i className="bi bi-chat-left-text me-1"></i>
                         Descripción *
                       </label>
                       <textarea
@@ -922,6 +1433,9 @@ const SolicitaAtencionPage = () => {
                         disabled={isLoading}
                         required
                       ></textarea>
+                      <div className="form-text">
+                        Incluye información relevante como: diagnóstico, medicamentos, limitaciones, etc.
+                      </div>
                     </div>
 
                     <div className="col-12">
@@ -937,6 +1451,7 @@ const SolicitaAtencionPage = () => {
                           required
                         />
                         <label className="form-check-label" htmlFor="termsAccepted">
+                          <i className="bi bi-shield-check me-1"></i>
                           Acepto los términos y condiciones y autorizo el tratamiento de mis datos personales según la política de privacidad. *
                         </label>
                       </div>
@@ -946,12 +1461,12 @@ const SolicitaAtencionPage = () => {
                       <button
                         type="submit"
                         className="btn btn-primary btn-lg px-5"
-                        disabled={isLoading}
+                        disabled={isLoading || !backendStatus.connected}
                       >
                         {isLoading ? (
                           <>
                             <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                            Enviando...
+                            Enviando a la base de datos...
                           </>
                         ) : (
                           <>
@@ -960,9 +1475,52 @@ const SolicitaAtencionPage = () => {
                           </>
                         )}
                       </button>
+                      {!backendStatus.connected && (
+                        <p className="mt-2 small text-danger">
+                          <i className="bi bi-exclamation-triangle me-1"></i>
+                          No se puede enviar mientras el servidor esté desconectado
+                        </p>
+                      )}
+                      <p className="mt-2 small text-muted">
+                        <i className="bi bi-info-circle me-1"></i>
+                        Los datos serán almacenados en nuestra base de datos segura
+                      </p>
                     </div>
                   </div>
                 </form>
+              </div>
+            </div>
+
+            {/* Información de solución de problemas */}
+            <div className="mt-4 card border-info">
+              <div className="card-header bg-info text-dark d-flex justify-content-between align-items-center">
+                <div>
+                  <i className="bi bi-wrench me-2"></i>
+                  Solución de problemas de conexión
+                </div>
+                <span className={`badge ${backendStatus.connected ? 'bg-success' : 'bg-danger'}`}>
+                  {backendStatus.connected ? 'CONECTADO' : 'DESCONECTADO'}
+                </span>
+              </div>
+              <div className="card-body">
+                <h6>Si ves "Servidor Desconectado":</h6>
+                <ol className="mb-3">
+                  <li><strong>Inicia el backend:</strong>
+                    <pre className="bg-dark text-white p-2 mt-1 small rounded">
+                      cd backend<br />
+                      npm start
+                    </pre>
+                  </li>
+                  <li><strong>Verifica que esté en el puerto correcto:</strong>
+                    <code className="ms-1">{API_URL}</code>
+                  </li>
+                  <li><strong>Haz clic en "Verificar Conexión"</strong> arriba para reconectar</li>
+                  <li><strong>Revisa la consola del backend</strong> para ver errores</li>
+                </ol>
+                <div className="alert alert-warning mb-0">
+                  <i className="bi bi-lightbulb me-2"></i>
+                  <strong>Consejo:</strong> Si el backend se reconecta, verás una notificación verde en la parte superior.
+                </div>
               </div>
             </div>
 
@@ -994,6 +1552,7 @@ const AdminSolicitudesPage = () => {
   const [solicitudes, setSolicitudes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [debugInfo, setDebugInfo] = useState('');
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api/solicitudes';
 
@@ -1025,19 +1584,31 @@ const AdminSolicitudesPage = () => {
     try {
       setLoading(true);
       setError('');
+      setDebugInfo('Cargando solicitudes...');
 
       const response = await fetch(API_URL);
+
+      console.log('📡 Fetching solicitudes desde:', API_URL);
+      console.log('📡 Response status:', response.status);
 
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('📡 Datos recibidos:', data);
       setSolicitudes(data);
+      setDebugInfo(`Se cargaron ${data.length} solicitudes`);
     } catch (error) {
       console.error('Error cargando solicitudes:', error);
       setError(`Error al cargar las solicitudes: ${error.message}`);
+      setDebugInfo(`Error: ${error.message}`);
       setSolicitudes([]);
+
+      // Mostrar ayuda para solucionar problemas
+      if (error.message.includes('Failed to fetch')) {
+        setError(`No se pudo conectar con el backend en ${API_URL}. Asegúrate de que esté corriendo.`);
+      }
     } finally {
       setLoading(false);
     }
@@ -1069,7 +1640,8 @@ const AdminSolicitudesPage = () => {
           <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}>
             <span className="visually-hidden">Cargando...</span>
           </div>
-          <p className="mt-3">Cargando solicitudes...</p>
+          <p className="mt-3">Cargando solicitudes desde la base de datos...</p>
+          {debugInfo && <p className="small text-muted">{debugInfo}</p>}
         </div>
       </div>
     );
@@ -1082,26 +1654,39 @@ const AdminSolicitudesPage = () => {
           <i className="bi bi-list-check text-primary me-2"></i>
           Solicitudes de Atención
         </h1>
-        <button
-          className="btn btn-primary"
-          onClick={fetchSolicitudes}
-          disabled={loading}
-        >
-          <i className="bi bi-arrow-clockwise me-2"></i>
-          Actualizar
-        </button>
+        <div className="d-flex align-items-center">
+          {debugInfo && (
+            <span className="me-3 small text-muted">{debugInfo}</span>
+          )}
+          <button
+            className="btn btn-primary"
+            onClick={fetchSolicitudes}
+            disabled={loading}
+          >
+            <i className="bi bi-arrow-clockwise me-2"></i>
+            Actualizar
+          </button>
+        </div>
       </div>
 
       {error && (
         <div className="alert alert-danger alert-dismissible fade show mb-4" role="alert">
           <i className="bi bi-exclamation-triangle-fill me-2"></i>
           <strong>Error:</strong> {error}
-          <button
-            type="button"
-            className="btn-close"
-            onClick={() => setError('')}
-            aria-label="Cerrar"
-          ></button>
+          <div className="mt-2">
+            <button
+              className="btn btn-sm btn-outline-primary me-2"
+              onClick={fetchSolicitudes}
+            >
+              Reintentar
+            </button>
+            <button
+              type="button"
+              className="btn-close"
+              onClick={() => setError('')}
+              aria-label="Cerrar"
+            ></button>
+          </div>
         </div>
       )}
 
@@ -1109,112 +1694,143 @@ const AdminSolicitudesPage = () => {
         <div className="alert alert-info text-center py-5">
           <i className="bi bi-info-circle-fill fs-1 text-info mb-3"></i>
           <h4>No hay solicitudes registradas</h4>
-          <p className="mb-0">No se encontraron solicitudes en la base de datos</p>
+          <p className="mb-3">No se encontraron solicitudes en la base de datos.</p>
+          <div className="mt-3">
+            <Link to="/solicita-atencion" className="btn btn-primary me-2">
+              <i className="bi bi-plus-circle me-2"></i>
+              Crear Nueva Solicitud
+            </Link>
+            <button className="btn btn-outline-secondary" onClick={fetchSolicitudes}>
+              <i className="bi bi-arrow-clockwise me-2"></i>
+              Reintentar
+            </button>
+          </div>
         </div>
       ) : (
-        <div className="card border-0 shadow-sm">
-          <div className="card-header bg-white border-0">
-            <div className="d-flex justify-content-between align-items-center">
-              <h5 className="mb-0">
-                Total de solicitudes: <span className="badge bg-primary">{solicitudes.length}</span>
-              </h5>
+        <>
+          <div className="card border-0 shadow-sm mb-4">
+            <div className="card-header bg-white border-0">
+              <div className="d-flex justify-content-between align-items-center">
+                <h5 className="mb-0">
+                  Total de solicitudes: <span className="badge bg-primary">{solicitudes.length}</span>
+                </h5>
+                <div className="text-end">
+                  <small className="text-muted">
+                    <i className="bi bi-database me-1"></i>
+                    Datos cargados desde la base de datos
+                  </small>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="card-body p-0">
-            <div className="table-responsive">
-              <table className="table table-hover mb-0">
-                <thead className="table-light">
-                  <tr>
-                    <th>ID</th>
-                    <th>Contacto</th>
-                    <th>Paciente</th>
-                    <th>Edad</th>
-                    <th>Servicio</th>
-                    <th>Urgencia</th>
-                    <th>Fecha</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {solicitudes.map((solicitud) => (
-                    <tr key={solicitud.id}>
-                      <td><strong>#{solicitud.id}</strong></td>
-                      <td>
-                        <div>
-                          <strong>{solicitud.nombre_contacto}</strong>
-                          <div className="small text-muted">{solicitud.telefono}</div>
-                          <div className="small">{solicitud.email}</div>
-                        </div>
-                      </td>
-                      <td>{solicitud.nombre_paciente}</td>
-                      <td>
-                        <span className="badge bg-info">{solicitud.edad_paciente}</span>
-                      </td>
-                      <td>{solicitud.tipo_servicio}</td>
-                      <td>{getUrgenciaBadge(solicitud.urgencia)}</td>
-                      <td>
-                        <small>{formatFecha(solicitud.created_at)}</small>
-                      </td>
-                      <td>
-                        <button
-                          className="btn btn-sm btn-outline-primary"
-                          data-bs-toggle="modal"
-                          data-bs-target={`#modal-${solicitud.id}`}
-                          title="Ver detalles"
-                        >
-                          <i className="bi bi-eye"></i>
-                        </button>
 
-                        <div className="modal fade" id={`modal-${solicitud.id}`} tabIndex="-1">
-                          <div className="modal-dialog modal-lg">
-                            <div className="modal-content">
-                              <div className="modal-header">
-                                <h5 className="modal-title">
-                                  Detalles de la Solicitud #{solicitud.id}
-                                </h5>
-                                <button type="button" className="btn-close" data-bs-dismiss="modal"></button>
-                              </div>
-                              <div className="modal-body">
-                                <div className="row">
-                                  <div className="col-md-6">
-                                    <h6>Información del Contacto</h6>
-                                    <p><strong>Nombre:</strong> {solicitud.nombre_contacto}</p>
-                                    <p><strong>Teléfono:</strong> {solicitud.telefono}</p>
-                                    <p><strong>Email:</strong> {solicitud.email}</p>
-                                  </div>
-                                  <div className="col-md-6">
-                                    <h6>Información del Paciente</h6>
-                                    <p><strong>Paciente:</strong> {solicitud.nombre_paciente}</p>
-                                    <p><strong>Edad:</strong> {solicitud.edad_paciente}</p>
-                                    <p><strong>Servicio:</strong> {solicitud.tipo_servicio}</p>
-                                    <p><strong>Urgencia:</strong> {getUrgenciaBadge(solicitud.urgencia)}</p>
-                                  </div>
+          <div className="card border-0 shadow-sm">
+            <div className="card-body p-0">
+              <div className="table-responsive">
+                <table className="table table-hover mb-0">
+                  <thead className="table-light">
+                    <tr>
+                      <th>ID</th>
+                      <th>Contacto</th>
+                      <th>Paciente</th>
+                      <th>Edad</th>
+                      <th>Servicio</th>
+                      <th>Urgencia</th>
+                      <th>Fecha</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {solicitudes.map((solicitud) => (
+                      <tr key={solicitud.id}>
+                        <td><strong>#{solicitud.id}</strong></td>
+                        <td>
+                          <div>
+                            <strong>{solicitud.nombre_contacto}</strong>
+                            <div className="small text-muted">{solicitud.telefono}</div>
+                            <div className="small">{solicitud.email}</div>
+                          </div>
+                        </td>
+                        <td>{solicitud.nombre_paciente}</td>
+                        <td>
+                          <span className="badge bg-info">{solicitud.edad_paciente}</span>
+                        </td>
+                        <td>{solicitud.tipo_servicio}</td>
+                        <td>{getUrgenciaBadge(solicitud.urgencia)}</td>
+                        <td>
+                          <small>{formatFecha(solicitud.created_at || solicitud.fecha_creacion)}</small>
+                        </td>
+                        <td>
+                          <span className="badge bg-warning">Pendiente</span>
+                        </td>
+                        <td>
+                          <button
+                            className="btn btn-sm btn-outline-primary"
+                            data-bs-toggle="modal"
+                            data-bs-target={`#modal-${solicitud.id}`}
+                            title="Ver detalles"
+                          >
+                            <i className="bi bi-eye"></i>
+                          </button>
+
+                          <div className="modal fade" id={`modal-${solicitud.id}`} tabIndex="-1">
+                            <div className="modal-dialog modal-lg">
+                              <div className="modal-content">
+                                <div className="modal-header">
+                                  <h5 className="modal-title">
+                                    Detalles de la Solicitud #{solicitud.id}
+                                  </h5>
+                                  <button type="button" className="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
-                                <div className="mt-3">
-                                  <h6>Descripción</h6>
-                                  <div className="card">
-                                    <div className="card-body">
-                                      {solicitud.description || 'Sin descripción adicional'}
+                                <div className="modal-body">
+                                  <div className="row">
+                                    <div className="col-md-6">
+                                      <h6>Información del Contacto</h6>
+                                      <p><strong>Nombre:</strong> {solicitud.nombre_contacto}</p>
+                                      <p><strong>Teléfono:</strong> {solicitud.telefono}</p>
+                                      <p><strong>Email:</strong> {solicitud.email}</p>
+                                    </div>
+                                    <div className="col-md-6">
+                                      <h6>Información del Paciente</h6>
+                                      <p><strong>Paciente:</strong> {solicitud.nombre_paciente}</p>
+                                      <p><strong>Edad:</strong> {solicitud.edad_paciente}</p>
+                                      <p><strong>Servicio:</strong> {solicitud.tipo_servicio}</p>
+                                      <p><strong>Urgencia:</strong> {getUrgenciaBadge(solicitud.urgencia)}</p>
                                     </div>
                                   </div>
+                                  <div className="mt-3">
+                                    <h6>Descripción</h6>
+                                    <div className="card">
+                                      <div className="card-body">
+                                        {solicitud.description || 'Sin descripción adicional'}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="mt-3">
+                                    <h6>Información del Sistema</h6>
+                                    <p><strong>ID:</strong> {solicitud.id}</p>
+                                    <p><strong>Fecha de creación:</strong> {formatFecha(solicitud.created_at || solicitud.fecha_creacion)}</p>
+                                    <p><strong>Estado:</strong> <span className="badge bg-warning">Pendiente</span></p>
+                                  </div>
                                 </div>
-                              </div>
-                              <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">
-                                  Cerrar
-                                </button>
+                                <div className="modal-footer">
+                                  <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">
+                                    Cerrar
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       <div className="mt-4 d-flex justify-content-between">
@@ -1222,10 +1838,16 @@ const AdminSolicitudesPage = () => {
           <i className="bi bi-arrow-left me-2"></i>
           Volver al Inicio
         </Link>
-        <Link to="/solicita-atencion" className="btn btn-primary">
-          <i className="bi bi-plus-circle me-2"></i>
-          Nueva Solicitud
-        </Link>
+        <div>
+          <Link to="/solicita-atencion" className="btn btn-primary me-2">
+            <i className="bi bi-plus-circle me-2"></i>
+            Nueva Solicitud
+          </Link>
+          <button className="btn btn-outline-secondary" onClick={fetchSolicitudes}>
+            <i className="bi bi-arrow-clockwise me-2"></i>
+            Actualizar Lista
+          </button>
+        </div>
       </div>
     </div>
   );

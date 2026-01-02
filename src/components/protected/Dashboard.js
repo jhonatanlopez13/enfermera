@@ -20,7 +20,7 @@ const Dashboard = () => {
     setCurrentUser(user);
     
     // Obtener perfil del usuario
-    axios.get('http://localhost:5000/api/users/profile', {
+    axios.get('http://localhost:3001/api/users/profile', {
       headers: authService.authHeader()
     })
     .then(response => {

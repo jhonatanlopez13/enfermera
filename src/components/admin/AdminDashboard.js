@@ -28,7 +28,7 @@ const AdminDashboard = () => {
   }, [navigate]);
 
   const loadUsers = () => {
-    axios.get('http://localhost:5000/api/users/all', {
+    axios.get('http://localhost:3001api/users/all', {
       headers: authService.authHeader()
     })
     .then(response => {

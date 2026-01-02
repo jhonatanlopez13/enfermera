@@ -12,6 +12,7 @@ const register = (usuario, nombre, password, rol_id = 3) => {
   });
 };
 
+// Función para iniciar sesión
 const login = (usuario, password) => {
   return axios.post(API_URL + 'signin', {
     usuario,

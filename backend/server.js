@@ -168,7 +168,7 @@ app.post('/api/usuarios', (req, res) => {
 
 // Ruta para login de usuario
 app.post('/api/auth/login', (req, res) => {
-  console.log('📨 POST /api/auth/login recibido');
+  console.log('📨 POST /api/auth/login');
   console.log('📦 Datos recibidos:', req.body);
 
   const { usuario, password } = req.body;

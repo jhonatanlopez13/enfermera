@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../../services/auth.service';
 
-const Login = () => {
+const Login = ({ onLoginSuccess }) => {
   const [formData, setFormData] = useState({
-    usuario: 'admin',
-    password: 'lopez'
+    usuario: '',
+    password: ''
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -52,22 +52,31 @@ const Login = () => {
     setMessage('');
 
     try {
-      console.log('Enviando login...');
       const response = await authService.login(formData.usuario, formData.password);
-      console.log('Respuesta login:', response);
 
       if (response.success) {
         setMessage('✅ Login exitoso, redirigiendo...');
 
-        // Pequeña pausa para mostrar mensaje
-        setTimeout(() => {
+        // Verificar que onLoginSuccess existe antes de llamarlo
+        if (onLoginSuccess && typeof onLoginSuccess === 'function') {
+          onLoginSuccess(response.user);
+        } else {
+          // Si no hay callback, guardar en localStorage y redirigir
+          authService.saveUser(response.user);
+
           // Redirigir según el rol
-          if (response.user.rol_id === 1) {
-            navigate('/admin');
-          } else {
-            navigate('/');
-          }
-        }, 1000);
+          setTimeout(() => {
+            if (response.user.rol_id === 1) {
+              navigate('/admin'); // Administrador
+            } else if (response.user.rol_id === 2) {
+              navigate('/enfermera'); // Enfermera
+            } else if (response.user.rol_id === 3) {
+              navigate('/recepcionista'); // Recepcionista
+            } else {
+              navigate('/'); // Usuario normal
+            }
+          }, 1000);
+        }
       } else {
         setMessage(`❌ ${response.message}`);
         setLoading(false);
@@ -86,25 +95,6 @@ const Login = () => {
   const retryConnection = async () => {
     setBackendStatus({ connected: false, checking: true });
     await checkBackend();
-  };
-
-  const handleTestLogin = async () => {
-    setLoading(true);
-    setMessage('Probando login con admin...');
-
-    const result = await authService.testLogin();
-
-    if (result.success) {
-      setMessage('✅ Prueba exitosa! Redirigiendo...');
-      setTimeout(() => {
-        if (result.user.rol_id === 1) {
-          navigate('/admin');
-        }
-      }, 1000);
-    } else {
-      setMessage(`❌ Prueba fallida: ${result.message}`);
-      setLoading(false);
-    }
   };
 
   if (backendStatus.checking) {
@@ -152,7 +142,7 @@ const Login = () => {
             <div className="card-header bg-primary text-white text-center py-3">
               <h4 className="mb-0">
                 <i className="bi bi-shield-lock me-2"></i>
-                Inicio de Sesión - Sistema Enfermera Corazón
+                Inicio de Sesión
               </h4>
             </div>
 
@@ -166,7 +156,7 @@ const Login = () => {
                     name="usuario"
                     value={formData.usuario}
                     onChange={handleChange}
-                    placeholder="admin"
+                    placeholder="Ingresa tu usuario"
                     required
                     disabled={loading}
                     autoFocus
@@ -181,75 +171,58 @@ const Login = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    placeholder="lopez"
+                    placeholder="Ingresa tu contraseña"
                     required
                     disabled={loading}
                   />
                 </div>
 
-                <div className="d-grid gap-2">
-                  <button
-                    type="submit"
-                    className="btn btn-primary py-2"
-                    disabled={loading || !backendStatus.connected}
-                  >
-                    {loading ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2"></span>
-                        Iniciando sesión...
-                      </>
-                    ) : (
-                      <>
-                        <i className="bi bi-box-arrow-in-right me-2"></i>
-                        Iniciar Sesión
-                      </>
-                    )}
-                  </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary w-100 py-2 mb-3"
+                  disabled={loading || !backendStatus.connected}
+                >
+                  {loading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2"></span>
+                      Iniciando sesión...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-box-arrow-in-right me-2"></i>
+                      Iniciar Sesión
+                    </>
+                  )}
+                </button>
 
-                  <button
-                    type="button"
-                    className="btn btn-outline-info py-2"
-                    onClick={handleTestLogin}
-                    disabled={loading || !backendStatus.connected}
-                  >
-                    <i className="bi bi-bug me-2"></i>
-                    Probar Login Automático
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary py-2"
-                    onClick={handleRegister}
-                    disabled={loading}
-                  >
-                    <i className="bi bi-person-plus me-2"></i>
-                    Crear Cuenta
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary w-100"
+                  onClick={handleRegister}
+                  disabled={loading}
+                >
+                  <i className="bi bi-person-plus me-2"></i>
+                  Crear Cuenta
+                </button>
               </form>
 
               {message && (
                 <div className={`alert ${message.includes('✅') ? 'alert-success' : 'alert-danger'} mt-3`}>
-                  <i className={`bi ${message.includes('✅') ? 'bi-check-circle' : 'bi-exclamation-triangle'} me-2`}></i>
                   {message}
                 </div>
               )}
 
               {/* Credenciales de prueba */}
               <div className="mt-4 pt-3 border-top">
-                <h6 className="text-muted mb-2">
-                  <i className="bi bi-info-circle me-2"></i>
-                  Credenciales de prueba:
-                </h6>
+                <h6 className="text-muted mb-2">Credenciales de prueba:</h6>
                 <div className="row g-2">
                   <div className="col-12">
                     <div className="card bg-light border">
                       <div className="card-body p-2">
                         <small>
-                          <strong><i className="bi bi-person-fill-gear me-1"></i> Administrador:</strong><br />
+                          <strong>Administrador:</strong><br />
                           Usuario: <code>admin</code><br />
-                          Contraseña: <code>lopez</code><br />
-                          <span className="text-muted">(Rol: ADMIN)</span>
+                          Contraseña: <code>lopez</code>
                         </small>
                       </div>
                     </div>
@@ -260,10 +233,7 @@ const Login = () => {
 
             <div className="card-footer text-center py-3">
               <small className="text-muted">
-                <i className="bi bi-shield-check me-1"></i>
-                Sistema seguro |
-                <i className="bi bi-server ms-2 me-1"></i>
-                Backend: {backendStatus.connected ? 'Conectado ✓' : 'Desconectado ✗'}
+                Sistema de Gestión Enfermera Corazón
               </small>
             </div>
           </div>
@@ -271,6 +241,11 @@ const Login = () => {
       </div>
     </div>
   );
+};
+
+// Valor por defecto para onLoginSuccess
+Login.defaultProps = {
+  onLoginSuccess: null
 };
 
 export default Login;

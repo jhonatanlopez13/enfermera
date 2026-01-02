@@ -1,0 +1,285 @@
+/* Estilos generales para el panel de enfermera */
+.enfermera-dashboard {
+  min-height: calc(100vh - 200px);
+}
+
+/* Tarjetas de estadísticas */
+.estadistica-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: none;
+}
+
+.estadistica-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2) !important;
+}
+
+.bg-purple {
+  background-color: #6f42c1 !important;
+}
+
+/* Tabs de navegación */
+.enfermera-tabs .nav-link {
+  color: #495057;
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.enfermera-tabs .nav-link:hover {
+  color: #0d6efd;
+  border-bottom-color: #dee2e6;
+}
+
+.enfermera-tabs .nav-link.active {
+  color: #0d6efd;
+  border-bottom-color: #0d6efd;
+  background-color: transparent;
+}
+
+/* Tabla de pruebas */
+.table-hover tbody tr:hover {
+  background-color: rgba(13, 110, 253, 0.05);
+}
+
+.table-hover tbody tr.table-warning:hover {
+  background-color: rgba(255, 193, 7, 0.15);
+}
+
+.table-hover tbody tr.table-success:hover {
+  background-color: rgba(25, 135, 84, 0.15);
+}
+
+/* Calendario */
+.calendar {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.calendar-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  font-weight: 600;
+  color: #495057;
+}
+
+.calendar-weekday {
+  padding: 12px;
+  text-align: center;
+  border-right: 1px solid #dee2e6;
+}
+
+.calendar-weekday:last-child {
+  border-right: none;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background-color: #dee2e6;
+}
+
+.calendar-day {
+  min-height: 120px;
+  background: white;
+  padding: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.calendar-day.empty {
+  background-color: #f8f9fa;
+}
+
+.calendar-day.today {
+  background-color: rgba(13, 110, 253, 0.1);
+}
+
+.calendar-day.has-turnos {
+  background-color: rgba(25, 135, 84, 0.05);
+}
+
+.calendar-date {
+  margin-bottom: 8px;
+}
+
+.date-number {
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: #495057;
+}
+
+.date-number.today {
+  color: #0d6efd;
+}
+
+.calendar-turnos {
+  max-height: 85px;
+  overflow-y: auto;
+}
+
+.turno-item {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 6px;
+  margin-bottom: 4px;
+  font-size: 0.8rem;
+}
+
+.turno-info {
+  color: #6c757d;
+}
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1050;
+  padding: 20px;
+}
+
+.modal {
+  background: white;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #dee2e6;
+  background-color: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #dee2e6;
+  background-color: #f8f9fa;
+  border-radius: 0 0 8px 8px;
+}
+
+/* Tarjetas de pacientes */
+.paciente-info {
+  font-size: 0.9rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .calendar-day {
+    min-height: 100px;
+  }
+  
+  .calendar-header,
+  .calendar-grid {
+    grid-template-columns: repeat(7, 1fr);
+  }
+  
+  .calendar-weekday {
+    font-size: 0.8rem;
+    padding: 8px 4px;
+  }
+  
+  .date-number {
+    font-size: 1rem;
+  }
+  
+  .modal {
+    max-height: 95vh;
+  }
+}
+
+@media (max-width: 576px) {
+  .estadistica-card .card-body {
+    padding: 1rem;
+  }
+  
+  .estadistica-card h2 {
+    font-size: 1.5rem;
+  }
+  
+  .enfermera-tabs .nav-link {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+  }
+  
+  .calendar-day {
+    min-height: 80px;
+    padding: 4px;
+  }
+  
+  .turno-item {
+    padding: 4px;
+    font-size: 0.7rem;
+  }
+}
+
+/* Scrollbar personalizado */
+.calendar-turnos::-webkit-scrollbar {
+  width: 4px;
+}
+
+.calendar-turnos::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.calendar-turnos::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 2px;
+}
+
+.calendar-turnos::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.estadistica-card {
+  animation: fadeIn 0.5s ease-out;
+}

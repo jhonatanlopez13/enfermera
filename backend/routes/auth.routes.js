@@ -1,24 +1,11 @@
-// routes/auth.routes.js
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth.controller');
-const verifySignUp = require('../middlewares/verifySignUp');
-const authJwt = require('../middlewares/authJwt');
 
-// Rutas públicas
-router.post('/signup',
-  verifySignUp.checkDuplicateUsernameOrEmail,
-  verifySignUp.checkRolesExisted,
-  authController.signup
-);
+// Ruta pública para registro
+router.post('/register', authController.register);
 
-router.post('/signin', authController.signin);
-router.get('/roles', authController.getRoles);
-
-// Rutas protegidas
-router.get('/verify',
-  authJwt.verifyToken,
-  authController.verifyToken
-);
+// Ruta pública para login
+router.post('/login', authController.login);
 
 module.exports = router;

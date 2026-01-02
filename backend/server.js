@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2');
+const crypto = require('crypto');
 require('dotenv').config();
 
 const app = express();
@@ -29,7 +30,7 @@ db.connect((err) => {
     console.log('📌 Verifica que:');
     console.log('   1. XAMPP esté corriendo');
     console.log('   2. MySQL esté iniciado en XAMPP');
-    console.log('   3. La base de datos "enfermera_db" exista');
+    console.log('   3. La base de datos "enfermeras" exista');
     return;
   }
   console.log('✅ Conectado a la base de datos MySQL');
@@ -56,6 +57,7 @@ db.connect((err) => {
       console.error('❌ Error creando tabla:', err.message);
     } else {
       console.log('✅ Tabla "solicitudes" verificada/creada');
+      console.log('✅ Tabla "usuarios" verificada/creada');
     }
   });
 });
@@ -67,7 +69,11 @@ app.get('/', (req, res) => {
     endpoints: {
       getSolicitudes: 'GET /api/solicitudes',
       createSolicitud: 'POST /api/solicitudes',
-      health: 'GET /api/health'
+      getUsuarios: 'GET /api/usuarios',
+      createUsuario: 'POST /api/usuarios',
+      login: 'POST /api/auth/login',
+      health: 'GET /api/health',
+      testDb: 'GET /api/test-db'
     }
   });
 });
@@ -102,6 +108,110 @@ app.get('/api/solicitudes', (req, res) => {
   });
 });
 
+// Ruta para obtener todos los usuarios
+app.get('/api/usuarios', (req, res) => {
+  console.log('📨 GET /api/usuarios Recibido');
+
+  const query = 'SELECT * FROM usuarios ORDER BY creado_en DESC';
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('❌ Error obteniendo usuarios:', err.message);
+      return res.status(500).json({
+        error: 'Error obteniendo usuarios',
+        details: err.message
+      });
+    }
+
+    console.log(`✅ Enviando ${results.length} usuarios`);
+    res.json(results);
+  });
+});
+
+// Ruta para crear un nuevo usuario
+app.post('/api/usuarios', (req, res) => {
+  console.log('📨 POST /api/usuarios recibido');
+  console.log('📦 Datos recibidos:', req.body);
+
+  const { usuario, nombre, password, rol_id } = req.body;
+
+  if (!usuario || !nombre || !password) {
+    return res.status(400).json({
+      error: 'Faltan campos obligatorios',
+      required: ['usuario', 'nombre', 'password']
+    });
+  }
+
+  // Encriptar contraseña con MD5
+  const md5Password = crypto.createHash('md5').update(password).digest('hex');
+
+  const defaultRolId = rol_id || 3;
+  const query = 'INSERT INTO usuarios (usuario, nombre, password, rol_id, activo) VALUES (?, ?, ?, ?, 1)';
+
+  db.query(query, [usuario, nombre, md5Password, defaultRolId], (err, result) => {
+    if (err) {
+      console.error('❌ Error insertando usuario:', err.message);
+      return res.status(500).json({
+        error: 'Error guardando el usuario en la base de datos',
+        details: err.message
+      });
+    }
+
+    console.log(`✅ Usuario guardado con ID: ${result.insertId}`);
+    res.status(201).json({
+      success: true,
+      message: 'Usuario creado exitosamente',
+      id: result.insertId
+    });
+  });
+});
+
+// Ruta para login de usuario
+app.post('/api/auth/login', (req, res) => {
+  console.log('📨 POST /api/auth/login recibido');
+  console.log('📦 Datos recibidos:', req.body);
+
+  const { usuario, password } = req.body;
+
+  if (!usuario || !password) {
+    return res.status(400).json({
+      error: 'Usuario y contraseña son obligatorios'
+    });
+  }
+
+  // Encriptar la contraseña con MD5
+  const md5Password = crypto.createHash('md5').update(password).digest('hex');
+
+  const query = `
+    SELECT u.*, r.nombre as rol_nombre 
+    FROM usuarios u 
+    INNER JOIN roles r ON u.rol_id = r.id 
+    WHERE u.usuario = ? AND u.password = ? AND u.activo = 1
+  `;
+
+  db.query(query, [usuario, md5Password], (err, results) => {
+    if (err) {
+      console.error('❌ Error en login:', err.message);
+      return res.status(500).json({ error: 'Error interno del servidor' });
+    }
+
+    if (results.length === 0) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    const user = results[0];
+
+    // Eliminar password del objeto de respuesta
+    const { password: _, ...userWithoutPassword } = user;
+
+    res.json({
+      success: true,
+      message: 'Login exitoso',
+      user: userWithoutPassword
+    });
+  });
+});
+
 // Ruta para crear una nueva solicitud
 app.post('/api/solicitudes', (req, res) => {
   console.log('📨 POST /api/solicitudes recibido');
@@ -118,7 +228,6 @@ app.post('/api/solicitudes', (req, res) => {
     description
   } = req.body;
 
-  // Validación de campos obligatorios
   if (!nombre_contacto || !telefono || !email || !nombre_paciente || !tipo_servicio || !description) {
     return res.status(400).json({
       error: 'Faltan campos obligatorios',
@@ -154,7 +263,6 @@ app.post('/api/solicitudes', (req, res) => {
 
     console.log(`✅ Solicitud guardada con ID: ${result.insertId}`);
 
-    // Obtener la solicitud recién creada
     db.query('SELECT * FROM solicitudes WHERE id = ?', [result.insertId], (err, rows) => {
       if (err) {
         return res.status(201).json({
@@ -191,6 +299,19 @@ app.get('/api/test-db', (req, res) => {
   });
 });
 
+// Ruta para probar recepción de datos (DEBUG)
+app.post('/api/test-register', (req, res) => {
+  console.log('📨 POST /api/test-register recibido');
+  console.log('📦 Datos recibidos:', req.body);
+
+  res.json({
+    success: true,
+    message: 'Datos recibidos correctamente',
+    data: req.body,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Manejo de errores 404
 app.use((req, res) => {
   res.status(404).json({
@@ -207,5 +328,7 @@ app.listen(PORT, () => {
   console.log(`   http://localhost:${PORT}/`);
   console.log(`   http://localhost:${PORT}/api/health`);
   console.log(`   http://localhost:${PORT}/api/solicitudes`);
+  console.log(`   http://localhost:${PORT}/api/usuarios`);
+  console.log(`   http://localhost:${PORT}/api/auth/login`);
   console.log(`   http://localhost:${PORT}/api/test-db`);
 });

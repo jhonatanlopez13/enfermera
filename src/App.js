@@ -10,6 +10,7 @@ import Register from './components/auth/Register';
 
 // Importar dashboards usando lazy loading
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
+const EnfermeraDashboard = React.lazy(() => import('./components/enfermera/EnfermeraDashboard'));
 
 // Crear contexto de autenticación
 const AuthContext = createContext();
@@ -72,28 +73,6 @@ const LoginWithContext = () => {
 };
 
 // Componente placeholder para otros dashboards
-const EnfermeraDashboard = () => (
-  <div className="container py-5">
-    <div className="card shadow">
-      <div className="card-header bg-info text-white">
-        <h3 className="mb-0">
-          <i className="bi bi-heart-pulse me-2"></i>
-          Panel de Enfermera
-        </h3>
-      </div>
-      <div className="card-body text-center py-5">
-        <i className="bi bi-heart-pulse-fill text-info fs-1 mb-3"></i>
-        <h4>Panel en Desarrollo</h4>
-        <p className="text-muted">Esta sección está actualmente en desarrollo.</p>
-        <Link to="/" className="btn btn-primary mt-3">
-          <i className="bi bi-house me-1"></i>
-          Volver al Inicio
-        </Link>
-      </div>
-    </div>
-  </div>
-);
-
 const RecepcionistaDashboard = () => (
   <div className="container py-5">
     <div className="card shadow">
@@ -172,7 +151,7 @@ const UnauthorizedPage = () => {
   );
 };
 
-// Componente Navbar actualizado con autenticación (sin nombre de usuario)
+// Componente Navbar actualizado con autenticación
 const Navbar = () => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -280,9 +259,9 @@ const Navbar = () => {
                   <div className="bg-light rounded-circle d-flex align-items-center justify-content-center"
                     style={{ width: '40px', height: '40px' }}>
                     <i className={`bi ${currentUser.rol_id === 1 ? 'bi-shield-fill text-danger fs-5' :
-                        currentUser.rol_id === 2 ? 'bi-heart-pulse-fill text-info fs-5' :
-                          currentUser.rol_id === 3 ? 'bi-reception-4-fill text-success fs-5' :
-                            'bi-person-fill text-primary fs-5'
+                      currentUser.rol_id === 2 ? 'bi-heart-pulse-fill text-info fs-5' :
+                        currentUser.rol_id === 3 ? 'bi-reception-4-fill text-success fs-5' :
+                          'bi-person-fill text-primary fs-5'
                       }`}></i>
                   </div>
                 </button>
@@ -299,9 +278,9 @@ const Navbar = () => {
                     <li>
                       <h6 className="dropdown-header">
                         <i className={`bi ${currentUser.rol_id === 1 ? 'bi-shield me-2' :
-                            currentUser.rol_id === 2 ? 'bi-heart-pulse me-2' :
-                              currentUser.rol_id === 3 ? 'bi-reception-4 me-2' :
-                                'bi-person me-2'
+                          currentUser.rol_id === 2 ? 'bi-heart-pulse me-2' :
+                            currentUser.rol_id === 3 ? 'bi-reception-4 me-2' :
+                              'bi-person me-2'
                           }`}></i>
                         {currentUser.rol_nombre}
                       </h6>
@@ -1028,13 +1007,29 @@ function App() {
                 {/* Rutas protegidas por rol */}
                 <Route path="/admin" element={
                   <ProtectedRoute requiredRole={1}>
-                    <AdminDashboard />
+                    <Suspense fallback={
+                      <div className="container py-5 text-center">
+                        <div className="spinner-border text-primary" role="status">
+                          <span className="visually-hidden">Cargando...</span>
+                        </div>
+                      </div>
+                    }>
+                      <AdminDashboard />
+                    </Suspense>
                   </ProtectedRoute>
                 } />
 
                 <Route path="/enfermera" element={
                   <ProtectedRoute requiredRole={2}>
-                    <EnfermeraDashboard />
+                    <Suspense fallback={
+                      <div className="container py-5 text-center">
+                        <div className="spinner-border text-primary" role="status">
+                          <span className="visually-hidden">Cargando...</span>
+                        </div>
+                      </div>
+                    }>
+                      <EnfermeraDashboard />
+                    </Suspense>
                   </ProtectedRoute>
                 } />
 

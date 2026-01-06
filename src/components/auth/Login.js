@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import authService from '../../services/auth.service';
 
 const Login = ({ onLoginSuccess }) => {
   const [formData, setFormData] = useState({
@@ -20,11 +19,18 @@ const Login = ({ onLoginSuccess }) => {
   }, []);
 
   const checkBackend = async () => {
-    const status = await authService.checkBackendHealth();
-    setBackendStatus({
-      connected: status.success,
-      checking: false
-    });
+    try {
+      const response = await fetch('http://localhost:3001/api/health');
+      setBackendStatus({
+        connected: response.ok,
+        checking: false
+      });
+    } catch (error) {
+      setBackendStatus({
+        connected: false,
+        checking: false
+      });
+    }
   };
 
   const handleChange = (e) => {
@@ -52,33 +58,41 @@ const Login = ({ onLoginSuccess }) => {
     setMessage('');
 
     try {
-      const response = await authService.login(formData.usuario, formData.password);
+      const response = await fetch('http://localhost:3001/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          usuario: formData.usuario,
+          password: formData.password
+        }),
+      });
 
-      if (response.success) {
+      const data = await response.json();
+
+      if (response.ok && data.success) {
         setMessage('✅ Login exitoso, redirigiendo...');
 
-        // Verificar que onLoginSuccess existe antes de llamarlo
         if (onLoginSuccess && typeof onLoginSuccess === 'function') {
-          onLoginSuccess(response.user);
+          onLoginSuccess(data.user);
         } else {
-          // Si no hay callback, guardar en localStorage y redirigir
-          authService.saveUser(response.user);
+          localStorage.setItem('user', JSON.stringify(data.user));
 
-          // Redirigir según el rol
           setTimeout(() => {
-            if (response.user.rol_id === 1) {
-              navigate('/admin'); // Administrador
-            } else if (response.user.rol_id === 2) {
-              navigate('/enfermera'); // Enfermera
-            } else if (response.user.rol_id === 3) {
-              navigate('/recepcionista'); // Recepcionista
+            if (data.user.rol_id === 1) {
+              navigate('/admin');
+            } else if (data.user.rol_id === 2) {
+              navigate('/enfermera');
+            } else if (data.user.rol_id === 3) {
+              navigate('/recepcionista');
             } else {
-              navigate('/'); // Usuario normal
+              navigate('/');
             }
           }, 1000);
         }
       } else {
-        setMessage(`❌ ${response.message}`);
+        setMessage(`❌ ${data.error || 'Credenciales incorrectas'}`);
         setLoading(false);
       }
     } catch (error) {
@@ -223,6 +237,17 @@ const Login = ({ onLoginSuccess }) => {
                           <strong>Administrador:</strong><br />
                           Usuario: <code>admin</code><br />
                           Contraseña: <code>lopez</code>
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-12">
+                    <div className="card bg-light border">
+                      <div className="card-body p-2">
+                        <small>
+                          <strong>Enfermera:</strong><br />
+                          Usuario: <code>enfermera1</code><br />
+                          Contraseña: <code>enfermera123</code>
                         </small>
                       </div>
                     </div>

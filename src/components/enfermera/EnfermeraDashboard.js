@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useContext } from 'react';
 import {
     FaClipboardCheck,
     FaCalendarAlt,
     FaCamera,
     FaUserInjured,
-    FaChartBar,
     FaPlus,
-    FaEdit,
     FaTrash,
     FaCheckCircle,
     FaClock,
@@ -23,513 +21,31 @@ import {
     FaUpload,
     FaEye
 } from 'react-icons/fa';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
-import './EnfermeraDashboard.css';
 
-// Componente principal del Dashboard de Enfermera
-const EnfermeraDashboard = () => {
-    const { currentUser } = useAuth();
-    const [activeTab, setActiveTab] = useState('pruebas');
-    const [pruebas, setPruebas] = useState([]);
-    const [turnos, setTurnos] = useState([]);
-    const [pacientes, setPacientes] = useState([]);
-    const [estadisticas, setEstadisticas] = useState({});
-    const [currentDate, setCurrentDate] = useState(new Date());
-    const [loading, setLoading] = useState(true);
-    const [showAddPruebaModal, setShowAddPruebaModal] = useState(false);
-    const [showAsistenciaModal, setShowAsistenciaModal] = useState(false);
-    const [selectedTurno, setSelectedTurno] = useState(null);
+// Crear un contexto de autenticación simple para este componente
+const AuthContext = React.createContext();
 
-    useEffect(() => {
-        if (currentUser) {
-            loadData();
-        }
-    }, [currentUser, currentDate]);
-
-    const loadData = async () => {
-        setLoading(true);
-        try {
-            // Cargar pruebas
-            const pruebasRes = await fetch(`http://localhost:3001/api/enfermera/pruebas?enfermeraId=${currentUser.id}`);
-            const pruebasData = await pruebasRes.json();
-            setPruebas(pruebasData);
-
-            // Cargar turnos del mes
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth() + 1;
-            const turnosRes = await fetch(
-                `http://localhost:3001/api/enfermera/turnos?enfermeraId=${currentUser.id}&year=${year}&month=${month}`
-            );
-            const turnosData = await turnosRes.json();
-            setTurnos(turnosData);
-
-            // Cargar pacientes
-            const pacientesRes = await fetch('http://localhost:3001/api/enfermera/pacientes');
-            const pacientesData = await pacientesRes.json();
-            setPacientes(pacientesData);
-
-            // Cargar estadísticas
-            const statsRes = await fetch(`http://localhost:3001/api/enfermera/estadisticas?enfermeraId=${currentUser.id}`);
-            const statsData = await statsRes.json();
-            setEstadisticas(statsData);
-        } catch (error) {
-            console.error('Error cargando datos:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handlePrevMonth = () => {
-        setCurrentDate(subMonths(currentDate, 1));
-    };
-
-    const handleNextMonth = () => {
-        setCurrentDate(addMonths(currentDate, 1));
-    };
-
-    const handleToday = () => {
-        setCurrentDate(new Date());
-    };
-
-    const handleRegistrarAsistencia = (turno) => {
-        setSelectedTurno(turno);
-        setShowAsistenciaModal(true);
-    };
-
-    if (loading) {
-        return (
-            <div className="container py-5 text-center">
-                <div className="spinner-border text-primary"></div>
-                <p className="mt-3">Cargando panel de enfermera...</p>
-            </div>
-        );
-    }
-
-    return (
-        <div className="container-fluid py-4 enfermera-dashboard">
-            {/* Header */}
-            <div className="row mb-4">
-                <div className="col-12">
-                    <div className="card bg-primary text-white shadow">
-                        <div className="card-body">
-                            <div className="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h1 className="h3 mb-1">
-                                        <FaUserCheck className="me-2" />
-                                        Panel de Enfermera
-                                    </h1>
-                                    <p className="mb-0 opacity-75">
-                                        Bienvenida, <strong>{currentUser.nombre}</strong>
-                                    </p>
-                                </div>
-                                <div className="text-end">
-                                    <p className="mb-0">
-                                        <FaCalendarDay className="me-1" />
-                                        {format(new Date(), "EEEE d 'de' MMMM, yyyy", { locale: es })}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Estadísticas */}
-            <div className="row mb-4">
-                <div className="col-md-3 mb-3">
-                    <div className="card estadistica-card bg-success text-white h-100">
-                        <div className="card-body">
-                            <div className="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 className="card-title">Pruebas Completadas</h6>
-                                    <h2 className="mb-0">{estadisticas.pruebas_completadas || 0}</h2>
-                                </div>
-                                <FaCheckCircle size={40} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="col-md-3 mb-3">
-                    <div className="card estadistica-card bg-warning text-white h-100">
-                        <div className="card-body">
-                            <div className="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 className="card-title">Pruebas Pendientes</h6>
-                                    <h2 className="mb-0">{estadisticas.pruebas_pendientes || 0}</h2>
-                                </div>
-                                <FaClock size={40} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="col-md-3 mb-3">
-                    <div className="card estadistica-card bg-info text-white h-100">
-                        <div className="card-body">
-                            <div className="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 className="card-title">Turnos Este Mes</h6>
-                                    <h2 className="mb-0">{estadisticas.turnos_este_mes || 0}</h2>
-                                </div>
-                                <FaCalendarAlt size={40} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="col-md-3 mb-3">
-                    <div className="card estadistica-card bg-purple text-white h-100">
-                        <div className="card-body">
-                            <div className="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 className="card-title">Total Pruebas</h6>
-                                    <h2 className="mb-0">{estadisticas.total_pruebas || 0}</h2>
-                                </div>
-                                <FaFileMedical size={40} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Tabs de navegación */}
-            <div className="row mb-4">
-                <div className="col-12">
-                    <ul className="nav nav-tabs enfermera-tabs">
-                        <li className="nav-item">
-                            <button
-                                className={`nav-link ${activeTab === 'pruebas' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('pruebas')}
-                            >
-                                <FaClipboardCheck className="me-2" />
-                                Pruebas Médicas
-                            </button>
-                        </li>
-                        <li className="nav-item">
-                            <button
-                                className={`nav-link ${activeTab === 'calendario' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('calendario')}
-                            >
-                                <FaCalendarAlt className="me-2" />
-                                Calendario de Turnos
-                            </button>
-                        </li>
-                        <li className="nav-item">
-                            <button
-                                className={`nav-link ${activeTab === 'pacientes' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('pacientes')}
-                            >
-                                <FaUserInjured className="me-2" />
-                                Mis Pacientes
-                            </button>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            {/* Contenido de las pestañas */}
-            <div className="row">
-                <div className="col-12">
-                    {activeTab === 'pruebas' && (
-                        <PruebasMedicas
-                            pruebas={pruebas}
-                            pacientes={pacientes}
-                            onRefresh={loadData}
-                            onAddPrueba={() => setShowAddPruebaModal(true)}
-                        />
-                    )}
-
-                    {activeTab === 'calendario' && (
-                        <CalendarioTurnos
-                            currentDate={currentDate}
-                            turnos={turnos}
-                            onPrevMonth={handlePrevMonth}
-                            onNextMonth={handleNextMonth}
-                            onToday={handleToday}
-                            onRegistrarAsistencia={handleRegistrarAsistencia}
-                        />
-                    )}
-
-                    {activeTab === 'pacientes' && (
-                        <PacientesList pacientes={pacientes} />
-                    )}
-                </div>
-            </div>
-
-            {/* Modales */}
-            {showAddPruebaModal && (
-                <AddPruebaModal
-                    pacientes={pacientes}
-                    enfermeraId={currentUser.id}
-                    onClose={() => setShowAddPruebaModal(false)}
-                    onSuccess={() => {
-                        setShowAddPruebaModal(false);
-                        loadData();
-                    }}
-                />
-            )}
-
-            {showAsistenciaModal && selectedTurno && (
-                <AsistenciaModal
-                    turno={selectedTurno}
-                    onClose={() => {
-                        setShowAsistenciaModal(false);
-                        setSelectedTurno(null);
-                    }}
-                    onSuccess={() => {
-                        setShowAsistenciaModal(false);
-                        setSelectedTurno(null);
-                        loadData();
-                    }}
-                />
-            )}
-        </div>
-    );
-};
-
-// Componente de Pruebas Médicas
-const PruebasMedicas = ({ pruebas, pacientes, onRefresh, onAddPrueba }) => {
-    const [filter, setFilter] = useState('todas');
-    const [showDetalle, setShowDetalle] = useState(false);
-    const [pruebaDetalle, setPruebaDetalle] = useState(null);
-
-    const filteredPruebas = pruebas.filter(prueba => {
-        if (filter === 'todas') return true;
-        if (filter === 'completadas') return prueba.estado === 'completada';
-        if (filter === 'pendientes') return prueba.estado === 'pendiente';
-        return true;
-    });
-
-    const handleUpdateEstado = async (id, nuevoEstado) => {
-        try {
-            await fetch(`http://localhost:3001/api/enfermera/pruebas/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ estado: nuevoEstado })
-            });
-            onRefresh();
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Error al actualizar el estado');
-        }
-    };
-
-    const handleDeletePrueba = async (id) => {
-        if (window.confirm('¿Está seguro de eliminar esta prueba?')) {
-            try {
-                await fetch(`http://localhost:3001/api/enfermera/pruebas/${id}`, {
-                    method: 'DELETE',
-                });
-                onRefresh();
-                alert('Prueba eliminada exitosamente');
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error al eliminar la prueba');
+// Hook useAuth simplificado
+const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (!context) {
+        // Si no hay contexto, retornar usuario de prueba
+        return {
+            currentUser: {
+                id: 2,
+                nombre: 'Laura Gómez',
+                usuario: 'enfermera1',
+                rol_id: 2,
+                rol_nombre: 'ENFERMERA'
             }
-        }
-    };
-
-    const handleViewDetalle = (prueba) => {
-        setPruebaDetalle(prueba);
-        setShowDetalle(true);
-    };
-
-    return (
-        <>
-            <div className="card shadow">
-                <div className="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h5 className="mb-0">
-                        <FaClipboardCheck className="me-2 text-primary" />
-                        Registro de Pruebas Médicas
-                    </h5>
-                    <div className="d-flex gap-2">
-                        <div className="btn-group">
-                            <button
-                                className={`btn btn-sm ${filter === 'todas' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                onClick={() => setFilter('todas')}
-                            >
-                                Todas
-                            </button>
-                            <button
-                                className={`btn btn-sm ${filter === 'completadas' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                onClick={() => setFilter('completadas')}
-                            >
-                                Completadas
-                            </button>
-                            <button
-                                className={`btn btn-sm ${filter === 'pendientes' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                onClick={() => setFilter('pendientes')}
-                            >
-                                Pendientes
-                            </button>
-                        </div>
-                        <button className="btn btn-primary btn-sm" onClick={onAddPrueba}>
-                            <FaPlus className="me-1" /> Nueva Prueba
-                        </button>
-                    </div>
-                </div>
-                <div className="card-body">
-                    <div className="table-responsive">
-                        <table className="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Paciente</th>
-                                    <th>Tipo de Prueba</th>
-                                    <th>Fecha</th>
-                                    <th>Descripción</th>
-                                    <th>Resultado</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredPruebas.map(prueba => (
-                                    <tr key={prueba.id} className={prueba.estado === 'pendiente' ? 'table-warning' : 'table-success'}>
-                                        <td>
-                                            <strong>{prueba.nombre_paciente}</strong>
-                                            {prueba.paciente_completo && (
-                                                <div>
-                                                    <small className="text-muted">{prueba.paciente_completo}</small>
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td>
-                                            <span className="badge bg-info">{prueba.tipo_prueba}</span>
-                                        </td>
-                                        <td>{format(new Date(prueba.fecha_prueba), 'dd/MM/yyyy')}</td>
-                                        <td>
-                                            <div className="text-truncate" style={{ maxWidth: '200px' }}>
-                                                {prueba.descripcion}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            {prueba.resultado ? (
-                                                <span className="text-success">{prueba.resultado}</span>
-                                            ) : (
-                                                <span className="text-muted">Sin resultado</span>
-                                            )}
-                                        </td>
-                                        <td>
-                                            <span className={`badge ${prueba.estado === 'completada' ? 'bg-success' : 'bg-warning'}`}>
-                                                {prueba.estado === 'completada' ? 'Completada' : 'Pendiente'}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div className="btn-group btn-group-sm">
-                                                <button
-                                                    className="btn btn-outline-info"
-                                                    onClick={() => handleViewDetalle(prueba)}
-                                                    title="Ver detalles"
-                                                >
-                                                    <FaEye />
-                                                </button>
-                                                {prueba.estado === 'pendiente' && (
-                                                    <button
-                                                        className="btn btn-outline-success"
-                                                        onClick={() => handleUpdateEstado(prueba.id, 'completada')}
-                                                        title="Marcar como completada"
-                                                    >
-                                                        <FaCheckCircle />
-                                                    </button>
-                                                )}
-                                                <button className="btn btn-outline-danger"
-                                                    onClick={() => handleDeletePrueba(prueba.id)}
-                                                    title="Eliminar">
-                                                    <FaTrash />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        {filteredPruebas.length === 0 && (
-                            <div className="text-center py-4">
-                                <FaClipboardCheck size={48} className="text-muted mb-3" />
-                                <h5>No hay pruebas registradas</h5>
-                                <p className="text-muted">Agrega una nueva prueba para comenzar</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Modal de Detalle de Prueba */}
-            {showDetalle && pruebaDetalle && (
-                <div className="modal-overlay">
-                    <div className="modal">
-                        <div className="modal-header">
-                            <h5 className="modal-title">
-                                <FaClipboardCheck className="me-2" />
-                                Detalle de Prueba
-                            </h5>
-                            <button className="btn-close" onClick={() => setShowDetalle(false)}></button>
-                        </div>
-                        <div className="modal-body">
-                            <div className="row">
-                                <div className="col-md-6 mb-3">
-                                    <label className="form-label text-muted">Paciente</label>
-                                    <div className="fw-bold">{pruebaDetalle.nombre_paciente}</div>
-                                </div>
-                                <div className="col-md-6 mb-3">
-                                    <label className="form-label text-muted">Tipo de Prueba</label>
-                                    <div>
-                                        <span className="badge bg-info">{pruebaDetalle.tipo_prueba}</span>
-                                    </div>
-                                </div>
-                                <div className="col-md-6 mb-3">
-                                    <label className="form-label text-muted">Fecha de Prueba</label>
-                                    <div>{format(new Date(pruebaDetalle.fecha_prueba), 'dd/MM/yyyy')}</div>
-                                </div>
-                                <div className="col-md-6 mb-3">
-                                    <label className="form-label text-muted">Estado</label>
-                                    <div>
-                                        <span className={`badge ${pruebaDetalle.estado === 'completada' ? 'bg-success' : 'bg-warning'}`}>
-                                            {pruebaDetalle.estado === 'completada' ? 'Completada' : 'Pendiente'}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="col-12 mb-3">
-                                    <label className="form-label text-muted">Descripción</label>
-                                    <div className="p-3 bg-light rounded">{pruebaDetalle.descripcion}</div>
-                                </div>
-                                {pruebaDetalle.resultado && (
-                                    <div className="col-12 mb-3">
-                                        <label className="form-label text-muted">Resultado</label>
-                                        <div className="p-3 bg-success text-white rounded">
-                                            {pruebaDetalle.resultado}
-                                        </div>
-                                    </div>
-                                )}
-                                {pruebaDetalle.observaciones && (
-                                    <div className="col-12 mb-3">
-                                        <label className="form-label text-muted">Observaciones</label>
-                                        <div className="p-3 bg-light rounded">{pruebaDetalle.observaciones}</div>
-                                    </div>
-                                )}
-                                {pruebaDetalle.fecha_resultado && (
-                                    <div className="col-12 mb-3">
-                                        <label className="form-label text-muted">Fecha de Resultado</label>
-                                        <div>{format(new Date(pruebaDetalle.fecha_resultado), 'dd/MM/yyyy')}</div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        <div className="modal-footer">
-                            <button className="btn btn-secondary" onClick={() => setShowDetalle(false)}>
-                                <FaTimes className="me-1" /> Cerrar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </>
-    );
+        };
+    }
+    return context;
 };
 
-// Componente de Calendario de Turnos
+// Componente de Calendario de Turnos (definido antes de usarse)
 const CalendarioTurnos = ({ currentDate, turnos, onPrevMonth, onNextMonth, onToday, onRegistrarAsistencia }) => {
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(currentDate);
@@ -566,13 +82,25 @@ const CalendarioTurnos = ({ currentDate, turnos, onPrevMonth, onNextMonth, onTod
                         Calendario de Turnos
                     </h5>
                     <div className="d-flex gap-2">
-                        <button className="btn btn-sm btn-outline-primary" onClick={onPrevMonth}>
+                        <button
+                            type="button"
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={onPrevMonth}
+                        >
                             <FaArrowLeft />
                         </button>
-                        <button className="btn btn-sm btn-outline-primary" onClick={onToday}>
+                        <button
+                            type="button"
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={onToday}
+                        >
                             Hoy
                         </button>
-                        <button className="btn btn-sm btn-outline-primary" onClick={onNextMonth}>
+                        <button
+                            type="button"
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={onNextMonth}
+                        >
                             <FaArrowRight />
                         </button>
                     </div>
@@ -643,6 +171,7 @@ const CalendarioTurnos = ({ currentDate, turnos, onPrevMonth, onNextMonth, onTod
                                                 </div>
                                                 {!turno.asistio && isSameDay(new Date(turno.fecha), new Date()) && (
                                                     <button
+                                                        type="button"
                                                         className="btn btn-sm btn-primary w-100 mt-2"
                                                         onClick={() => onRegistrarAsistencia(turno)}
                                                     >
@@ -698,7 +227,7 @@ const PacientesList = ({ pacientes }) => {
     const [searchTerm, setSearchTerm] = useState('');
 
     const filteredPacientes = pacientes.filter(paciente =>
-        paciente.nombre_completo.toLowerCase().includes(searchTerm.toLowerCase())
+        paciente.nombre_completo && paciente.nombre_completo.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -721,7 +250,7 @@ const PacientesList = ({ pacientes }) => {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <button className="btn btn-sm btn-outline-primary">
+                    <button type="button" className="btn btn-sm btn-outline-primary">
                         <FaFilter className="me-1" />
                         Filtros
                     </button>
@@ -735,7 +264,7 @@ const PacientesList = ({ pacientes }) => {
                                 <div className="card-body">
                                     <div className="d-flex justify-content-between align-items-start mb-3">
                                         <div>
-                                            <h6 className="card-title mb-1">{paciente.nombre_completo}</h6>
+                                            <h6 className="card-title mb-1">{paciente.nombre_completo || 'Paciente sin nombre'}</h6>
                                             <small className="text-muted">ID: #{paciente.id}</small>
                                         </div>
                                         <span className="badge bg-info">Paciente</span>
@@ -752,11 +281,11 @@ const PacientesList = ({ pacientes }) => {
                                 </div>
                                 <div className="card-footer bg-transparent border-top">
                                     <div className="d-flex gap-2">
-                                        <button className="btn btn-sm btn-outline-primary flex-grow-1">
+                                        <button type="button" className="btn btn-sm btn-outline-primary flex-grow-1">
                                             <FaEye className="me-1" />
                                             Ver Historial
                                         </button>
-                                        <button className="btn btn-sm btn-outline-success">
+                                        <button type="button" className="btn btn-sm btn-outline-success">
                                             <FaPlus />
                                         </button>
                                     </div>
@@ -815,7 +344,7 @@ const AddPruebaModal = ({ pacientes, enfermeraId, onClose, onSuccess }) => {
         setError('');
 
         try {
-            const response = await fetch('http://localhost:3001/api/enfermera/pruebas', {
+            const response = await fetch('http://localhost:3001/api/pruebas', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -848,7 +377,7 @@ const AddPruebaModal = ({ pacientes, enfermeraId, onClose, onSuccess }) => {
                         <FaPlus className="me-2" />
                         Nueva Prueba Médica
                     </h5>
-                    <button className="btn-close" onClick={onClose}></button>
+                    <button type="button" className="btn-close" onClick={onClose}></button>
                 </div>
                 <form onSubmit={handleSubmit}>
                     <div className="modal-body">
@@ -872,7 +401,7 @@ const AddPruebaModal = ({ pacientes, enfermeraId, onClose, onSuccess }) => {
                                     <option value="">Seleccionar paciente...</option>
                                     {pacientes.map(paciente => (
                                         <option key={paciente.id} value={paciente.id}>
-                                            {paciente.nombre_completo}
+                                            {paciente.nombre_completo || `Paciente ${paciente.id}`}
                                         </option>
                                     ))}
                                 </select>
@@ -985,21 +514,20 @@ const AsistenciaModal = ({ turno, onClose, onSuccess }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    useEffect(() => {
-        // Establecer hora actual por defecto
-        const now = new Date();
-        const horaActual = now.toTimeString().split(' ')[0].substring(0, 5);
+    // Inicializar con hora actual (sin useEffect)
+    const now = new Date();
+    const horaActual = now.toTimeString().split(' ')[0].substring(0, 5);
+    const initialFormData = {
+        hora_entrada: horaActual,
+        hora_salida: '',
+        observaciones: `Asistencia registrada el ${format(new Date(), 'dd/MM/yyyy')}`
+    };
 
-        setFormData({
-            hora_entrada: horaActual,
-            hora_salida: '',
-            observaciones: `Asistencia registrada el ${format(new Date(), 'dd/MM/yyyy')}`
-        });
-    }, []);
+    const [localFormData, setLocalFormData] = useState(initialFormData);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
+        setLocalFormData(prev => ({
             ...prev,
             [name]: value
         }));
@@ -1018,16 +546,16 @@ const AsistenciaModal = ({ turno, onClose, onSuccess }) => {
         setError('');
 
         const formDataToSend = new FormData();
-        formDataToSend.append('hora_entrada', formData.hora_entrada);
-        formDataToSend.append('hora_salida', formData.hora_salida);
-        formDataToSend.append('observaciones', formData.observaciones);
+        formDataToSend.append('hora_entrada', localFormData.hora_entrada);
+        formDataToSend.append('hora_salida', localFormData.hora_salida);
+        formDataToSend.append('observaciones', localFormData.observaciones);
 
         if (evidenciaFoto) {
             formDataToSend.append('evidencia_foto', evidenciaFoto);
         }
 
         try {
-            const response = await fetch(`http://localhost:3001/api/enfermera/turnos/${turno.id}/asistencia`, {
+            const response = await fetch(`http://localhost:3001/api/turnos/${turno.id}/asistencia`, {
                 method: 'POST',
                 body: formDataToSend,
             });
@@ -1054,7 +582,7 @@ const AsistenciaModal = ({ turno, onClose, onSuccess }) => {
                         <FaCamera className="me-2" />
                         Registrar Asistencia
                     </h5>
-                    <button className="btn-close" onClick={onClose}></button>
+                    <button type="button" className="btn-close" onClick={onClose}></button>
                 </div>
                 <form onSubmit={handleSubmit}>
                     <div className="modal-body">
@@ -1072,19 +600,19 @@ const AsistenciaModal = ({ turno, onClose, onSuccess }) => {
                                 <div className="row">
                                     <div className="col-md-6">
                                         <small className="text-muted">Fecha</small>
-                                        <div className="fw-bold">{format(new Date(turno.fecha), 'dd/MM/yyyy')}</div>
+                                        <div className="fw-bold">{turno.fecha ? format(new Date(turno.fecha), 'dd/MM/yyyy') : 'Sin fecha'}</div>
                                     </div>
                                     <div className="col-md-6">
                                         <small className="text-muted">Turno</small>
-                                        <div className="fw-bold">{turno.turno}</div>
+                                        <div className="fw-bold">{turno.turno || 'No especificado'}</div>
                                     </div>
                                     <div className="col-md-6">
                                         <small className="text-muted">Horario</small>
-                                        <div className="fw-bold">{turno.hora_inicio} - {turno.hora_fin}</div>
+                                        <div className="fw-bold">{turno.hora_inicio || '--:--'} - {turno.hora_fin || '--:--'}</div>
                                     </div>
                                     <div className="col-md-6">
                                         <small className="text-muted">Ubicación</small>
-                                        <div className="fw-bold text-truncate">{turno.ubicacion}</div>
+                                        <div className="fw-bold text-truncate">{turno.ubicacion || 'Sin ubicación'}</div>
                                     </div>
                                 </div>
                             </div>
@@ -1097,7 +625,7 @@ const AsistenciaModal = ({ turno, onClose, onSuccess }) => {
                                     type="time"
                                     className="form-control"
                                     name="hora_entrada"
-                                    value={formData.hora_entrada}
+                                    value={localFormData.hora_entrada}
                                     onChange={handleChange}
                                     required
                                 />
@@ -1109,7 +637,7 @@ const AsistenciaModal = ({ turno, onClose, onSuccess }) => {
                                     type="time"
                                     className="form-control"
                                     name="hora_salida"
-                                    value={formData.hora_salida}
+                                    value={localFormData.hora_salida}
                                     onChange={handleChange}
                                 />
                             </div>
@@ -1125,8 +653,8 @@ const AsistenciaModal = ({ turno, onClose, onSuccess }) => {
                                         onChange={handleFileChange}
                                     />
                                     <button
-                                        className="btn btn-outline-secondary"
                                         type="button"
+                                        className="btn btn-outline-secondary"
                                         onClick={() => document.querySelector('input[type="file"]').click()}
                                     >
                                         <FaUpload />
@@ -1149,7 +677,7 @@ const AsistenciaModal = ({ turno, onClose, onSuccess }) => {
                                     className="form-control"
                                     name="observaciones"
                                     rows="3"
-                                    value={formData.observaciones}
+                                    value={localFormData.observaciones}
                                     onChange={handleChange}
                                     placeholder="Observaciones adicionales sobre la asistencia"
                                 />
@@ -1179,19 +707,579 @@ const AsistenciaModal = ({ turno, onClose, onSuccess }) => {
     );
 };
 
-// Hook useAuth para contexto de autenticación
-const useAuth = () => {
-    // Esto debería venir del contexto de autenticación
-    // Por ahora, retornamos un usuario de prueba
-    return {
-        currentUser: {
-            id: 2,
-            nombre: 'Laura Gómez',
-            usuario: 'enfermera1',
-            rol_id: 2,
-            rol_nombre: 'ENFERMERA'
+// Componente de Pruebas Médicas
+const PruebasMedicas = ({ pruebas, pacientes, onRefresh, onAddPrueba }) => {
+    const [filter, setFilter] = useState('todas');
+    const [showDetalle, setShowDetalle] = useState(false);
+    const [pruebaDetalle, setPruebaDetalle] = useState(null);
+
+    const filteredPruebas = pruebas.filter(prueba => {
+        if (filter === 'todas') return true;
+        if (filter === 'completadas') return prueba.estado === 'completada';
+        if (filter === 'pendientes') return prueba.estado === 'pendiente';
+        return true;
+    });
+
+    const handleUpdateEstado = async (id, nuevoEstado) => {
+        try {
+            await fetch(`http://localhost:3001/api/pruebas/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estado: nuevoEstado })
+            });
+            onRefresh();
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al actualizar el estado');
         }
     };
+
+    const handleDeletePrueba = async (id) => {
+        if (window.confirm('¿Está seguro de eliminar esta prueba?')) {
+            try {
+                await fetch(`http://localhost:3001/api/pruebas/${id}`, {
+                    method: 'DELETE',
+                });
+                onRefresh();
+                alert('Prueba eliminada exitosamente');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al eliminar la prueba');
+            }
+        }
+    };
+
+    const handleViewDetalle = (prueba) => {
+        setPruebaDetalle(prueba);
+        setShowDetalle(true);
+    };
+
+    return (
+        <>
+            <div className="card shadow">
+                <div className="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 className="mb-0">
+                        <FaClipboardCheck className="me-2 text-primary" />
+                        Registro de Pruebas Médicas
+                    </h5>
+                    <div className="d-flex gap-2">
+                        <div className="btn-group">
+                            <button
+                                type="button"
+                                className={`btn btn-sm ${filter === 'todas' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                onClick={() => setFilter('todas')}
+                            >
+                                Todas
+                            </button>
+                            <button
+                                type="button"
+                                className={`btn btn-sm ${filter === 'completadas' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                onClick={() => setFilter('completadas')}
+                            >
+                                Completadas
+                            </button>
+                            <button
+                                type="button"
+                                className={`btn btn-sm ${filter === 'pendientes' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                onClick={() => setFilter('pendientes')}
+                            >
+                                Pendientes
+                            </button>
+                        </div>
+                        <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            onClick={onAddPrueba}
+                        >
+                            <FaPlus className="me-1" /> Nueva Prueba
+                        </button>
+                    </div>
+                </div>
+                <div className="card-body">
+                    <div className="table-responsive">
+                        <table className="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Paciente</th>
+                                    <th>Tipo de Prueba</th>
+                                    <th>Fecha</th>
+                                    <th>Descripción</th>
+                                    <th>Resultado</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredPruebas.map(prueba => (
+                                    <tr key={prueba.id} className={prueba.estado === 'pendiente' ? 'table-warning' : 'table-success'}>
+                                        <td>
+                                            <strong>{prueba.nombre_paciente || 'Paciente sin nombre'}</strong>
+                                            {prueba.paciente_completo && (
+                                                <div>
+                                                    <small className="text-muted">{prueba.paciente_completo}</small>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td>
+                                            <span className="badge bg-info">{prueba.tipo_prueba || 'No especificado'}</span>
+                                        </td>
+                                        <td>{prueba.fecha_prueba ? format(new Date(prueba.fecha_prueba), 'dd/MM/yyyy') : 'Sin fecha'}</td>
+                                        <td>
+                                            <div className="text-truncate" style={{ maxWidth: '200px' }}>
+                                                {prueba.descripcion || 'Sin descripción'}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {prueba.resultado ? (
+                                                <span className="text-success">{prueba.resultado}</span>
+                                            ) : (
+                                                <span className="text-muted">Sin resultado</span>
+                                            )}
+                                        </td>
+                                        <td>
+                                            <span className={`badge ${prueba.estado === 'completada' ? 'bg-success' : 'bg-warning'}`}>
+                                                {prueba.estado === 'completada' ? 'Completada' : 'Pendiente'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div className="btn-group btn-group-sm">
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-outline-info"
+                                                    onClick={() => handleViewDetalle(prueba)}
+                                                    title="Ver detalles"
+                                                >
+                                                    <FaEye />
+                                                </button>
+                                                {prueba.estado === 'pendiente' && (
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-outline-success"
+                                                        onClick={() => handleUpdateEstado(prueba.id, 'completada')}
+                                                        title="Marcar como completada"
+                                                    >
+                                                        <FaCheckCircle />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-outline-danger"
+                                                    onClick={() => handleDeletePrueba(prueba.id)}
+                                                    title="Eliminar"
+                                                >
+                                                    <FaTrash />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {filteredPruebas.length === 0 && (
+                            <div className="text-center py-4">
+                                <FaClipboardCheck size={48} className="text-muted mb-3" />
+                                <h5>No hay pruebas registradas</h5>
+                                <p className="text-muted">Agrega una nueva prueba para comenzar</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Modal de Detalle de Prueba */}
+            {showDetalle && pruebaDetalle && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <div className="modal-header">
+                            <h5 className="modal-title">
+                                <FaClipboardCheck className="me-2" />
+                                Detalle de Prueba
+                            </h5>
+                            <button
+                                type="button"
+                                className="btn-close"
+                                onClick={() => setShowDetalle(false)}
+                            ></button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="row">
+                                <div className="col-md-6 mb-3">
+                                    <label className="form-label text-muted">Paciente</label>
+                                    <div className="fw-bold">{pruebaDetalle.nombre_paciente || 'Paciente sin nombre'}</div>
+                                </div>
+                                <div className="col-md-6 mb-3">
+                                    <label className="form-label text-muted">Tipo de Prueba</label>
+                                    <div>
+                                        <span className="badge bg-info">{pruebaDetalle.tipo_prueba || 'No especificado'}</span>
+                                    </div>
+                                </div>
+                                <div className="col-md-6 mb-3">
+                                    <label className="form-label text-muted">Fecha de Prueba</label>
+                                    <div>{pruebaDetalle.fecha_prueba ? format(new Date(pruebaDetalle.fecha_prueba), 'dd/MM/yyyy') : 'Sin fecha'}</div>
+                                </div>
+                                <div className="col-md-6 mb-3">
+                                    <label className="form-label text-muted">Estado</label>
+                                    <div>
+                                        <span className={`badge ${pruebaDetalle.estado === 'completada' ? 'bg-success' : 'bg-warning'}`}>
+                                            {pruebaDetalle.estado === 'completada' ? 'Completada' : 'Pendiente'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="col-12 mb-3">
+                                    <label className="form-label text-muted">Descripción</label>
+                                    <div className="p-3 bg-light rounded">{pruebaDetalle.descripcion || 'Sin descripción'}</div>
+                                </div>
+                                {pruebaDetalle.resultado && (
+                                    <div className="col-12 mb-3">
+                                        <label className="form-label text-muted">Resultado</label>
+                                        <div className="p-3 bg-success text-white rounded">
+                                            {pruebaDetalle.resultado}
+                                        </div>
+                                    </div>
+                                )}
+                                {pruebaDetalle.observaciones && (
+                                    <div className="col-12 mb-3">
+                                        <label className="form-label text-muted">Observaciones</label>
+                                        <div className="p-3 bg-light rounded">{pruebaDetalle.observaciones}</div>
+                                    </div>
+                                )}
+                                {pruebaDetalle.fecha_resultado && (
+                                    <div className="col-12 mb-3">
+                                        <label className="form-label text-muted">Fecha de Resultado</label>
+                                        <div>{format(new Date(pruebaDetalle.fecha_resultado), 'dd/MM/yyyy')}</div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button
+                                type="button"
+                                className="btn btn-secondary"
+                                onClick={() => setShowDetalle(false)}
+                            >
+                                <FaTimes className="me-1" /> Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
+    );
+};
+
+// Componente principal del Dashboard de Enfermera
+const EnfermeraDashboard = () => {
+    const { currentUser } = useAuth();
+    const [activeTab, setActiveTab] = useState('pruebas');
+
+    // Datos de prueba estáticos
+    const [pruebas] = useState([
+        {
+            id: 1,
+            nombre_paciente: 'María González',
+            tipo_prueba: 'glucemia',
+            descripcion: 'Prueba de glucemia en ayunas',
+            resultado: '95 mg/dL (Normal)',
+            fecha_prueba: new Date().toISOString(),
+            estado: 'completada',
+            paciente_completo: 'María González'
+        },
+        {
+            id: 2,
+            nombre_paciente: 'Juan Pérez',
+            tipo_prueba: 'presión arterial',
+            descripcion: 'Control de presión arterial',
+            resultado: '120/80 mmHg (Normal)',
+            fecha_prueba: new Date().toISOString(),
+            estado: 'completada',
+            paciente_completo: 'Juan Pérez'
+        },
+        {
+            id: 3,
+            nombre_paciente: 'Ana Rodríguez',
+            tipo_prueba: 'COVID-19',
+            descripcion: 'Test rápido de antígenos',
+            resultado: 'Negativo',
+            fecha_prueba: new Date().toISOString(),
+            estado: 'pendiente',
+            paciente_completo: 'Ana Rodríguez'
+        }
+    ]);
+
+    const [turnos] = useState([
+        {
+            id: 1,
+            fecha: new Date().toISOString().split('T')[0],
+            turno: 'matutino',
+            hora_inicio: '08:00',
+            hora_fin: '16:00',
+            ubicacion: 'Hospital Central - Piso 3',
+            asistio: 0,
+            evidencia_foto: null
+        },
+        {
+            id: 2,
+            fecha: new Date(Date.now() + 86400000).toISOString().split('T')[0], // Mañana
+            turno: 'vespertino',
+            hora_inicio: '16:00',
+            hora_fin: '00:00',
+            ubicacion: 'Clínica Norte',
+            asistio: 1,
+            evidencia_foto: 'foto_turno.jpg'
+        }
+    ]);
+
+    const [pacientes] = useState([
+        {
+            id: 1,
+            nombre_completo: 'María González',
+            telefono: '555-1234',
+            email: 'maria.gonzalez@email.com'
+        },
+        {
+            id: 2,
+            nombre_completo: 'Juan Pérez',
+            telefono: '555-5678',
+            email: 'juan.perez@email.com'
+        },
+        {
+            id: 3,
+            nombre_completo: 'Ana Rodríguez',
+            telefono: '555-9012',
+            email: 'ana.rodriguez@email.com'
+        },
+        {
+            id: 4,
+            nombre_completo: 'Carlos López',
+            telefono: '555-3456',
+            email: 'carlos.lopez@email.com'
+        }
+    ]);
+
+    const [estadisticas] = useState({
+        total_pruebas: 3,
+        pruebas_completadas: 2,
+        pruebas_pendientes: 1,
+        turnos_este_mes: 1
+    });
+
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [showAddPruebaModal, setShowAddPruebaModal] = useState(false);
+    const [showAsistenciaModal, setShowAsistenciaModal] = useState(false);
+    const [selectedTurno, setSelectedTurno] = useState(null);
+
+    const handlePrevMonth = () => {
+        setCurrentDate(subMonths(currentDate, 1));
+    };
+
+    const handleNextMonth = () => {
+        setCurrentDate(addMonths(currentDate, 1));
+    };
+
+    const handleToday = () => {
+        setCurrentDate(new Date());
+    };
+
+    const handleRegistrarAsistencia = (turno) => {
+        setSelectedTurno(turno);
+        setShowAsistenciaModal(true);
+    };
+
+    const handleRefreshPruebas = () => {
+        alert('Funcionalidad de recarga activada - en un entorno real, esto recargaría los datos del servidor');
+        // En un entorno real, aquí se haría fetch a la API
+    };
+
+    const handleSuccessAddPrueba = () => {
+        setShowAddPruebaModal(false);
+        alert('Prueba agregada exitosamente - en un entorno real, los datos se actualizarían');
+        // En un entorno real, aquí se recargarían los datos
+    };
+
+    const handleSuccessAsistencia = () => {
+        setShowAsistenciaModal(false);
+        setSelectedTurno(null);
+        alert('Asistencia registrada exitosamente - en un entorno real, los datos se actualizarían');
+        // En un entorno real, aquí se recargarían los datos
+    };
+
+    return (
+        <div className="container-fluid py-4 enfermera-dashboard">
+            {/* Header */}
+            <div className="row mb-4">
+                <div className="col-12">
+                    <div className="card bg-primary text-white shadow">
+                        <div className="card-body">
+                            <div className="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h1 className="h3 mb-1">
+                                        <FaUserCheck className="me-2" />
+                                        Panel de Enfermera
+                                    </h1>
+                                    <p className="mb-0 opacity-75">
+                                        Bienvenida, <strong>{currentUser.nombre}</strong>
+                                    </p>
+                                </div>
+                                <div className="text-end">
+                                    <p className="mb-0">
+                                        <FaCalendarDay className="me-1" />
+                                        {format(new Date(), "EEEE d 'de' MMMM, yyyy", { locale: es })}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Estadísticas */}
+            <div className="row mb-4">
+                <div className="col-md-3 mb-3">
+                    <div className="card estadistica-card bg-success text-white h-100">
+                        <div className="card-body">
+                            <div className="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 className="card-title">Pruebas Completadas</h6>
+                                    <h2 className="mb-0">{estadisticas.pruebas_completadas}</h2>
+                                </div>
+                                <FaCheckCircle size={40} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="col-md-3 mb-3">
+                    <div className="card estadistica-card bg-warning text-white h-100">
+                        <div className="card-body">
+                            <div className="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 className="card-title">Pruebas Pendientes</h6>
+                                    <h2 className="mb-0">{estadisticas.pruebas_pendientes}</h2>
+                                </div>
+                                <FaClock size={40} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="col-md-3 mb-3">
+                    <div className="card estadistica-card bg-info text-white h-100">
+                        <div className="card-body">
+                            <div className="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 className="card-title">Turnos Este Mes</h6>
+                                    <h2 className="mb-0">{estadisticas.turnos_este_mes}</h2>
+                                </div>
+                                <FaCalendarAlt size={40} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="col-md-3 mb-3">
+                    <div className="card estadistica-card bg-purple text-white h-100">
+                        <div className="card-body">
+                            <div className="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 className="card-title">Total Pruebas</h6>
+                                    <h2 className="mb-0">{estadisticas.total_pruebas}</h2>
+                                </div>
+                                <FaFileMedical size={40} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Tabs de navegación */}
+            <div className="row mb-4">
+                <div className="col-12">
+                    <ul className="nav nav-tabs enfermera-tabs">
+                        <li className="nav-item">
+                            <button
+                                type="button"
+                                className={`nav-link ${activeTab === 'pruebas' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('pruebas')}
+                            >
+                                <FaClipboardCheck className="me-2" />
+                                Pruebas Médicas
+                            </button>
+                        </li>
+                        <li className="nav-item">
+                            <button
+                                type="button"
+                                className={`nav-link ${activeTab === 'calendario' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('calendario')}
+                            >
+                                <FaCalendarAlt className="me-2" />
+                                Calendario de Turnos
+                            </button>
+                        </li>
+                        <li className="nav-item">
+                            <button
+                                type="button"
+                                className={`nav-link ${activeTab === 'pacientes' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('pacientes')}
+                            >
+                                <FaUserInjured className="me-2" />
+                                Mis Pacientes
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            {/* Contenido de las pestañas */}
+            <div className="row">
+                <div className="col-12">
+                    {activeTab === 'pruebas' && (
+                        <PruebasMedicas
+                            pruebas={pruebas}
+                            pacientes={pacientes}
+                            onRefresh={handleRefreshPruebas}
+                            onAddPrueba={() => setShowAddPruebaModal(true)}
+                        />
+                    )}
+
+                    {activeTab === 'calendario' && (
+                        <CalendarioTurnos
+                            currentDate={currentDate}
+                            turnos={turnos}
+                            onPrevMonth={handlePrevMonth}
+                            onNextMonth={handleNextMonth}
+                            onToday={handleToday}
+                            onRegistrarAsistencia={handleRegistrarAsistencia}
+                        />
+                    )}
+
+                    {activeTab === 'pacientes' && (
+                        <PacientesList pacientes={pacientes} />
+                    )}
+                </div>
+            </div>
+
+            {/* Modales */}
+            {showAddPruebaModal && (
+                <AddPruebaModal
+                    pacientes={pacientes}
+                    enfermeraId={currentUser.id}
+                    onClose={() => setShowAddPruebaModal(false)}
+                    onSuccess={handleSuccessAddPrueba}
+                />
+            )}
+
+            {showAsistenciaModal && selectedTurno && (
+                <AsistenciaModal
+                    turno={selectedTurno}
+                    onClose={() => {
+                        setShowAsistenciaModal(false);
+                        setSelectedTurno(null);
+                    }}
+                    onSuccess={handleSuccessAsistencia}
+                />
+            )}
+        </div>
+    );
 };
 
 export default EnfermeraDashboard;

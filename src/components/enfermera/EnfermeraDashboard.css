@@ -11,7 +11,7 @@
 
 .estadistica-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0,0,0,0.2) !important;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2) !important;
 }
 
 .bg-purple {
@@ -201,21 +201,21 @@
   .calendar-day {
     min-height: 100px;
   }
-  
+
   .calendar-header,
   .calendar-grid {
     grid-template-columns: repeat(7, 1fr);
   }
-  
+
   .calendar-weekday {
     font-size: 0.8rem;
     padding: 8px 4px;
   }
-  
+
   .date-number {
     font-size: 1rem;
   }
-  
+
   .modal {
     max-height: 95vh;
   }
@@ -225,21 +225,21 @@
   .estadistica-card .card-body {
     padding: 1rem;
   }
-  
+
   .estadistica-card h2 {
     font-size: 1.5rem;
   }
-  
+
   .enfermera-tabs .nav-link {
     padding: 0.5rem 0.75rem;
     font-size: 0.9rem;
   }
-  
+
   .calendar-day {
     min-height: 80px;
     padding: 4px;
   }
-  
+
   .turno-item {
     padding: 4px;
     font-size: 0.7rem;
@@ -270,6 +270,7 @@
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

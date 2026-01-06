@@ -158,10 +158,10 @@ const AdminDashboard = () => {
               <i className="bi bi-people fs-1 text-primary mb-3"></i>
               <h5 className="card-title">Gestión de Usuarios</h5>
               <p className="card-text">Administra usuarios, roles y permisos del sistema.</p>
-              <button className="btn btn-primary">
+              <Link to="/admin/usuarios" className="btn btn-primary">
                 <i className="bi bi-arrow-right me-1"></i>
                 Ir a Usuarios
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -169,12 +169,27 @@ const AdminDashboard = () => {
         <div className="col-md-4 mb-3">
           <div className="card h-100 border-success">
             <div className="card-body text-center">
-              <i className="bi bi-clipboard-data fs-1 text-success mb-3"></i>
-              <h5 className="card-title">Solicitudes</h5>
-              <p className="card-text">Revisa y gestiona todas las solicitudes de atención.</p>
-              <Link to="/admin-solicitudes" className="btn btn-success">
-                <i className="bi bi-arrow-right me-1"></i>
+              <i className="bi bi-chat-right-text fs-1 text-info mb-3"></i>
+              <h5 className="card-title">Ver Solicitudes</h5>
+              <p className="card-text">Revisa las solicitudes de atención pendientes.</p>
+              <Link to="/admin-solicitudes" className="btn btn-info text-white">
+                <i className="bi bi-eye me-1"></i>
                 Ver Solicitudes
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Tarjeta de Moderación de Calificaciones */}
+        <div className="col-md-4 mb-3">
+          <div className="card h-100 border-secondary">
+            <div className="card-body text-center">
+              <i className="bi bi-star-half fs-1 text-secondary mb-3"></i>
+              <h5 className="card-title">Moderación de Reseñas</h5>
+              <p className="card-text">Gestiona y elimina calificaciones de usuarios.</p>
+              <Link to="/admin/calificaciones" className="btn btn-secondary">
+                <i className="bi bi-shield-check me-1"></i>
+                Moderar
               </Link>
             </div>
           </div>

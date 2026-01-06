@@ -1911,6 +1911,18 @@ const createBasicTables = () => {
       estado ENUM('pendiente','en_proceso','completada','cancelada') DEFAULT 'pendiente',
       fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`,
+
+    // Tabla de calificaciones
+    `CREATE TABLE IF NOT EXISTS calificaciones (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      enfermera_id INT NOT NULL,
+      usuario_id INT,
+      puntuacion INT NOT NULL,
+      comentario TEXT,
+      fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (enfermera_id) REFERENCES usuarios(id),
+      FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
     )`
   ];
 
@@ -2378,7 +2390,57 @@ app.get('/api/usuarios', (req, res) => {
   });
 });
 
-// ========== RUTAS DE SOLICITUDES ========== //
+// Actualizar usuario (solo campos permitidos)
+app.put('/api/usuarios/:id', (req, res) => {
+  const { id } = req.params;
+  const { nombre, apellido, email, telefono, rol_id, activo } = req.body;
+
+  const query = `
+    UPDATE usuarios 
+    SET nombre = ?, apellido = ?, email = ?, telefono = ?, rol_id = ?, activo = ?
+    WHERE id = ?
+  `;
+
+  db.query(query, [nombre, apellido, email, telefono || null, rol_id, activo, id], (err, result) => {
+    if (err) {
+      console.error('❌ Error actualizando usuario:', err.message);
+      return res.status(500).json({ success: false, error: 'Error al actualizar usuario' });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, error: 'Usuario no encontrado' });
+    }
+
+    res.json({ success: true, message: 'Usuario actualizado correctamente' });
+  });
+});
+
+// Eliminar usuario (Soft Delete - desactivar)
+app.delete('/api/usuarios/:id', (req, res) => {
+  const { id } = req.params;
+
+  // No permitir eliminar al propio admin logueado (idealmente validar con sesión, por ahora validamos ID 1)
+  if (id == 1) {
+    return res.status(403).json({ success: false, error: 'No se puede eliminar al administrador principal' });
+  }
+
+  const query = 'UPDATE usuarios SET activo = 0 WHERE id = ?';
+
+  db.query(query, [id], (err, result) => {
+    if (err) {
+      console.error('❌ Error eliminando usuario:', err.message);
+      return res.status(500).json({ success: false, error: 'Error al eliminar usuario' });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, error: 'Usuario no encontrado' });
+    }
+
+    res.json({ success: true, message: 'Usuario desactivado correctamente' });
+  });
+});
+
+// ========== RUTAS DE CALIFICACIONES ========== //
 
 // Obtener todas las solicitudes
 app.get('/api/solicitudes', (req, res) => {
@@ -2519,6 +2581,96 @@ app.delete('/api/solicitudes/:id', (req, res) => {
       success: true,
       message: 'Solicitud eliminada correctamente'
     });
+  });
+});
+
+// ========== RUTAS DE CALIFICACIONES ========== //
+
+// Obtener enfermeras para vista pública (con promedio)
+app.get('/api/public/enfermeras', (req, res) => {
+  const query = `
+    SELECT 
+      u.id, u.nombre, u.apellido, u.especialidad, u.genero,
+      COALESCE(AVG(c.puntuacion), 0) as promedio_calificacion,
+      COUNT(c.id) as total_calificaciones
+    FROM usuarios u
+    LEFT JOIN calificaciones c ON u.id = c.enfermera_id
+    WHERE u.rol_id = 2 AND u.activo = 1
+    GROUP BY u.id
+    ORDER BY promedio_calificacion DESC
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('❌ Error obteniendo enfermeras públicas:', err.message);
+      return res.status(500).json({ success: false, error: 'Error al obtener enfermeras' });
+    }
+    res.json(results);
+  });
+});
+
+// Calificar a una enfermera
+app.post('/api/calificaciones', (req, res) => {
+  const { enfermera_id, usuario_id, puntuacion, comentario } = req.body;
+
+  if (!enfermera_id || !puntuacion) {
+    return res.status(400).json({ success: false, error: 'Faltan datos obligatorios' });
+  }
+
+  const query = `
+    INSERT INTO calificaciones (enfermera_id, usuario_id, puntuacion, comentario)
+    VALUES (?, ?, ?, ?)
+  `;
+
+  db.query(query, [enfermera_id, usuario_id || null, puntuacion, comentario], (err, result) => {
+    if (err) {
+      console.error('❌ Error guardando calificación:', err.message);
+      return res.status(500).json({ success: false, error: 'Error al guardar calificación' });
+    }
+
+    res.status(201).json({ success: true, message: 'Calificación guardada exitosamente' });
+  });
+});
+
+// Obtener todas las calificaciones (para admin)
+app.get('/api/calificaciones', (req, res) => {
+  const query = `
+    SELECT 
+      c.id, c.puntuacion, c.comentario, c.fecha,
+      enf.nombre as enfermera_nombre, enf.apellido as enfermera_apellido,
+      usr.nombre as usuario_nombre, usr.usuario as usuario_alias
+    FROM calificaciones c
+    JOIN usuarios enf ON c.enfermera_id = enf.id
+    LEFT JOIN usuarios usr ON c.usuario_id = usr.id
+    ORDER BY c.fecha DESC
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('❌ Error obteniendo calificaciones:', err.message);
+      return res.status(500).json({ success: false, error: 'Error obteniendo calificaciones' });
+    }
+    res.json({ success: true, reviews: results });
+  });
+});
+
+// Eliminar calificación (para admin)
+app.delete('/api/calificaciones/:id', (req, res) => {
+  const { id } = req.params;
+
+  const query = 'DELETE FROM calificaciones WHERE id = ?';
+
+  db.query(query, [id], (err, result) => {
+    if (err) {
+      console.error('❌ Error eliminando calificación:', err.message);
+      return res.status(500).json({ success: false, error: 'Error eliminando calificación' });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, error: 'Calificación no encontrada' });
+    }
+
+    res.json({ success: true, message: 'Calificación eliminada correctamente' });
   });
 });
 

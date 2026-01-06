@@ -16,10 +16,15 @@ const EnfermeraDashboard = React.lazy(() => import('./components/enfermera/Enfer
 // Importar componentes de admin
 const AdminRegisterEnfermera = React.lazy(() => import('./components/admin/AdminRegisterEnfermera'));
 const AdminSolicitudes = React.lazy(() => import('./components/admin/AdminSolicitudes'));
+const AdminUsuarios = React.lazy(() => import('./components/admin/AdminUsuarios'));
+const AdminCalificaciones = React.lazy(() => import('./components/admin/AdminCalificaciones'));
 
 // Importar componentes de recepcionista
 const RecepcionistaDashboard = React.lazy(() => import('./components/recepcionista/RecepcionistaDashboard'));
 const RecepcionistaRegisterEnfermera = React.lazy(() => import('./components/recepcionista/RecepcionistaRegisterEnfermera'));
+
+// Importar componentes de usuario
+const UserEnfermerasView = React.lazy(() => import('./components/user/UserEnfermerasView'));
 
 // Crear contexto de autenticación
 const AuthContext = createContext();
@@ -204,6 +209,13 @@ const Navbar = () => {
               <Link className="nav-link" to="/conoce-mas">
                 <i className="bi bi-info-circle me-1"></i>
                 Conoce Más
+              </Link>
+            </li>
+
+            <li className="nav-item">
+              <Link className="nav-link" to="/nuestras-enfermeras">
+                <i className="bi bi-people-fill me-1"></i>
+                Nuestras Enfermeras
               </Link>
             </li>
 
@@ -1030,6 +1042,34 @@ function App() {
                   </ProtectedRoute>
                 } />
 
+                <Route path="/admin/usuarios" element={
+                  <ProtectedRoute requiredRole={1}>
+                    <Suspense fallback={
+                      <div className="container py-5 text-center">
+                        <div className="spinner-border text-primary" role="status">
+                          <span className="visually-hidden">Cargando...</span>
+                        </div>
+                      </div>
+                    }>
+                      <AdminUsuarios />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/admin/calificaciones" element={
+                  <ProtectedRoute requiredRole={1}>
+                    <Suspense fallback={
+                      <div className="container py-5 text-center">
+                        <div className="spinner-border text-primary" role="status">
+                          <span className="visually-hidden">Cargando...</span>
+                        </div>
+                      </div>
+                    }>
+                      <AdminCalificaciones />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+
                 <Route path="/admin-solicitudes" element={
                   <ProtectedRoute requiredRole={1}>
                     <Suspense fallback={
@@ -1084,6 +1124,19 @@ function App() {
                       <RecepcionistaRegisterEnfermera />
                     </Suspense>
                   </ProtectedRoute>
+                } />
+
+                {/* Ruta pública para ver enfermeras (cualquiera puede ver, solo logueados califican) */}
+                <Route path="/nuestras-enfermeras" element={
+                  <Suspense fallback={
+                    <div className="container py-5 text-center">
+                      <div className="spinner-border text-primary" role="status">
+                        <span className="visually-hidden">Cargando...</span>
+                      </div>
+                    </div>
+                  }>
+                    <UserEnfermerasView />
+                  </Suspense>
                 } />
 
                 {/* Redirección para rutas no encontradas */}

@@ -48,6 +48,44 @@ const authService = {
     }
   },
 
+  // MÉTODO REGISTER AÑADIDO
+  register: async (userData) => {
+    try {
+      console.log('🔄 Enviando datos de registro:', userData);
+
+      const response = await fetch(`${API_URL}/usuarios/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+
+      const data = await response.json();
+      console.log('📨 Respuesta del servidor:', data);
+
+      if (response.ok) {
+        return {
+          success: true,
+          message: data.message || 'Usuario registrado exitosamente',
+          userId: data.userId,
+          user: data.user
+        };
+      } else {
+        return {
+          success: false,
+          message: data.message || data.error || 'Error en el registro'
+        };
+      }
+    } catch (error) {
+      console.error('❌ Error en registro:', error);
+      return {
+        success: false,
+        message: 'Error de conexión con el servidor. Verifica que el backend esté corriendo.'
+      };
+    }
+  },
+
   // Método para guardar usuario (por si acaso)
   saveUser: (userData) => {
     localStorage.setItem('user', JSON.stringify(userData));

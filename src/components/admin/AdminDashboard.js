@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import authService from '../../services/auth.service';
 
 const AdminDashboard = () => {
@@ -172,10 +172,24 @@ const AdminDashboard = () => {
               <i className="bi bi-clipboard-data fs-1 text-success mb-3"></i>
               <h5 className="card-title">Solicitudes</h5>
               <p className="card-text">Revisa y gestiona todas las solicitudes de atención.</p>
-              <button className="btn btn-success">
+              <Link to="/admin-solicitudes" className="btn btn-success">
                 <i className="bi bi-arrow-right me-1"></i>
                 Ver Solicitudes
-              </button>
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-md-4 mb-3">
+          <div className="card h-100 border-warning">
+            <div className="card-body text-center">
+              <i className="bi bi-person-plus-fill fs-1 text-warning mb-3"></i>
+              <h5 className="card-title">Registrar Enfermera</h5>
+              <p className="card-text">Agrega nuevas enfermeras al personal del hospital.</p>
+              <Link to="/admin/register-enfermera" className="btn btn-warning text-dark">
+                <i className="bi bi-plus-lg me-1"></i>
+                Registrar
+              </Link>
             </div>
           </div>
         </div>

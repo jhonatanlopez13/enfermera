@@ -7,10 +7,19 @@ import './App.css';
 // Importar componentes de autenticación
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
+import RegisterEnfermera from './components/auth/RegisterEnfermera';
 
 // Importar dashboards usando lazy loading
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
 const EnfermeraDashboard = React.lazy(() => import('./components/enfermera/EnfermeraDashboard'));
+
+// Importar componentes de admin
+const AdminRegisterEnfermera = React.lazy(() => import('./components/admin/AdminRegisterEnfermera'));
+const AdminSolicitudes = React.lazy(() => import('./components/admin/AdminSolicitudes'));
+
+// Importar componentes de recepcionista
+const RecepcionistaDashboard = React.lazy(() => import('./components/recepcionista/RecepcionistaDashboard'));
+const RecepcionistaRegisterEnfermera = React.lazy(() => import('./components/recepcionista/RecepcionistaRegisterEnfermera'));
 
 // Crear contexto de autenticación
 const AuthContext = createContext();
@@ -72,28 +81,6 @@ const LoginWithContext = () => {
   return <Login onLoginSuccess={handleLoginSuccess} />;
 };
 
-// Componente placeholder para otros dashboards
-const RecepcionistaDashboard = () => (
-  <div className="container py-5">
-    <div className="card shadow">
-      <div className="card-header bg-success text-white">
-        <h3 className="mb-0">
-          <i className="bi bi-reception-4 me-2"></i>
-          Panel de Recepción
-        </h3>
-      </div>
-      <div className="card-body text-center py-5">
-        <i className="bi bi-reception-4 text-success fs-1 mb-3"></i>
-        <h4>Panel en Desarrollo</h4>
-        <p className="text-muted">Esta sección está actualmente en desarrollo.</p>
-        <Link to="/" className="btn btn-primary mt-3">
-          <i className="bi bi-house me-1"></i>
-          Volver al Inicio
-        </Link>
-      </div>
-    </div>
-  </div>
-);
 
 // Componente para rutas protegidas
 const ProtectedRoute = ({ children, requiredRole = null }) => {
@@ -308,6 +295,15 @@ const Navbar = () => {
                         <Link className="dropdown-item" to="/admin" onClick={closeDropdown}>
                           <i className="bi bi-speedometer2 me-2"></i>
                           Panel de Administración
+                        </Link>
+                      </li>
+                    )}
+
+                    {currentUser.rol_id === 1 && (
+                      <li>
+                        <Link className="dropdown-item" to="/admin/register-enfermera" onClick={closeDropdown}>
+                          <i className="bi bi-person-plus me-2"></i>
+                          Registrar Enfermera
                         </Link>
                       </li>
                     )}
@@ -1003,6 +999,7 @@ function App() {
                 {/* Rutas de autenticación */}
                 <Route path="/login" element={<LoginWithContext />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/register-enfermera" element={<RegisterEnfermera />} />
 
                 {/* Rutas protegidas por rol */}
                 <Route path="/admin" element={
@@ -1015,6 +1012,34 @@ function App() {
                       </div>
                     }>
                       <AdminDashboard />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/admin/register-enfermera" element={
+                  <ProtectedRoute requiredRole={1}>
+                    <Suspense fallback={
+                      <div className="container py-5 text-center">
+                        <div className="spinner-border text-primary" role="status">
+                          <span className="visually-hidden">Cargando...</span>
+                        </div>
+                      </div>
+                    }>
+                      <AdminRegisterEnfermera />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/admin-solicitudes" element={
+                  <ProtectedRoute requiredRole={1}>
+                    <Suspense fallback={
+                      <div className="container py-5 text-center">
+                        <div className="spinner-border text-primary" role="status">
+                          <span className="visually-hidden">Cargando...</span>
+                        </div>
+                      </div>
+                    }>
+                      <AdminSolicitudes />
                     </Suspense>
                   </ProtectedRoute>
                 } />
@@ -1035,7 +1060,29 @@ function App() {
 
                 <Route path="/recepcionista" element={
                   <ProtectedRoute requiredRole={3}>
-                    <RecepcionistaDashboard />
+                    <Suspense fallback={
+                      <div className="container py-5 text-center">
+                        <div className="spinner-border text-success" role="status">
+                          <span className="visually-hidden">Cargando...</span>
+                        </div>
+                      </div>
+                    }>
+                      <RecepcionistaDashboard />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/recepcionista/register-enfermera" element={
+                  <ProtectedRoute requiredRole={3}>
+                    <Suspense fallback={
+                      <div className="container py-5 text-center">
+                        <div className="spinner-border text-success" role="status">
+                          <span className="visually-hidden">Cargando...</span>
+                        </div>
+                      </div>
+                    }>
+                      <RecepcionistaRegisterEnfermera />
+                    </Suspense>
                   </ProtectedRoute>
                 } />
 

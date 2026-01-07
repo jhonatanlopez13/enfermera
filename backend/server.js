@@ -1923,6 +1923,31 @@ const createBasicTables = () => {
       fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (enfermera_id) REFERENCES usuarios(id),
       FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+    )`,
+
+    // Tabla de novedades calendario
+    `CREATE TABLE IF NOT EXISTS novedades_calendario (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      fecha DATE NOT NULL,
+      nota TEXT NOT NULL,
+      evidencia_foto VARCHAR(255),
+      usuario_id INT,
+      creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+    )`,
+
+    // Tabla de novedades de pacientes
+    `CREATE TABLE IF NOT EXISTS novedades_pacientes (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      paciente_id INT NOT NULL,
+      tipo_novedad VARCHAR(100) NOT NULL,
+      descripcion TEXT NOT NULL,
+      fecha DATE NOT NULL,
+      evidencia_foto VARCHAR(255),
+      usuario_id INT,
+      creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (paciente_id) REFERENCES pacientes(id),
+      FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
     )`
   ];
 
@@ -2304,11 +2329,13 @@ app.post('/api/enfermeras/register', (req, res) => {
 
 // Ruta de salud
 app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    message: 'Backend funcionando correctamente',
-    database: db.state === 'connected' ? 'Conectado' : 'Desconectado',
-    timestamp: new Date().toISOString()
+  db.query('SELECT 1', (err) => {
+    res.json({
+      status: 'OK',
+      message: 'Backend funcionando correctamente',
+      database: err ? 'Error: ' + err.message : 'Conectado',
+      timestamp: new Date().toISOString()
+    });
   });
 });
 
@@ -2674,6 +2701,18 @@ app.delete('/api/calificaciones/:id', (req, res) => {
   });
 });
 
+// Importar rutas
+const turnoRoutes = require('./routes/turno.routes');
+const novedadRoutes = require('./routes/novedad.routes');
+const pacienteRoutes = require('./routes/paciente.routes');
+const novedadPacienteRoutes = require('./routes/novedadPaciente.routes');
+
+// ========== RUTAS DE TURNOS Y NOVEDADES ========== //
+app.use('/api/turnos', turnoRoutes);
+app.use('/api/novedades', novedadRoutes);
+app.use('/api/pacientes', pacienteRoutes);
+app.use('/api/novedades-pacientes', novedadPacienteRoutes);
+
 // ========== RUTAS BÁSICAS ========== //
 
 app.get('/', (req, res) => {
@@ -2688,7 +2727,11 @@ app.get('/', (req, res) => {
         registerNurse: 'POST /api/enfermeras/register'
       },
       users: 'GET /api/usuarios',
-      health: 'GET /api/health'
+      health: 'GET /api/health',
+      turnos: 'GET/POST /api/turnos',
+      novedades: 'GET/POST /api/novedades',
+      pacientes: 'GET /api/pacientes',
+      novedades_pacientes: 'GET/POST /api/novedades-pacientes'
     }
   });
 });
@@ -2722,6 +2765,10 @@ app.listen(PORT, () => {
   console.log(`   POST   /api/usuarios/register   - Registrar usuario`);
   console.log(`   POST   /api/enfermeras/register - Registrar enfermera`);
   console.log(`   GET    /api/usuarios            - Listar usuarios`);
+  console.log(`   GET    /api/turnos              - Listar turnos`);
+  console.log(`   GET    /api/novedades           - Listar novedades de calendario`);
+  console.log(`   GET    /api/pacientes           - Listar pacientes`);
+  console.log(`   GET    /api/novedades-pacientes - Listar novedades de pacientes`);
   console.log(`\n🔗 Usuarios de prueba:`);
   console.log(`   Admin:     usuario: admin, contraseña: admin123`);
   console.log(`   Enfermera: usuario: enfermera1, contraseña: enfermera123`);

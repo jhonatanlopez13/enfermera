@@ -1,21 +1,25 @@
-const mariadb = require('mariadb');
+const mysql = require('mysql2');
+require('dotenv').config();
 
-const pool = mariadb.createPool({
-    host: "localhost",
-    user: "root",
-    password: "", // tu contraseña aquí
-    database: "enfermeras", // verifica que la base se llame igual
-    connectionLimit: 5
+const pool = mysql.createPool({
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'enfermeras',
+    port: process.env.DB_PORT || 3306,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
 });
 
-// Función para probar la conexión
-pool.getConnection()
-    .then(conn => {
-        console.log('Conexión a la base de datos establecida');
-        conn.release();
-    })
-    .catch(err => {
-        console.error('Error conectando a la base de datos:', err.message);
-    });
+// Probar conexión
+pool.getConnection((err, connection) => {
+    if (err) {
+        console.error('❌ Error conectando a la base de datos desde db.js:', err.message);
+        return;
+    }
+    console.log('✅ Conexión a la base de datos establecida correctamente (Pool)');
+    connection.release();
+});
 
 module.exports = pool;

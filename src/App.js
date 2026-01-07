@@ -26,6 +26,10 @@ const RecepcionistaRegisterEnfermera = React.lazy(() => import('./components/rec
 // Importar componentes de usuario
 const UserEnfermerasView = React.lazy(() => import('./components/user/UserEnfermerasView'));
 
+// Importar componentes compartidos
+const NovedadesPage = React.lazy(() => import('./components/shared/NovedadesPage'));
+const CalendarioPage = React.lazy(() => import('./components/shared/CalendarioPage'));
+
 // Crear contexto de autenticación
 const AuthContext = createContext();
 
@@ -212,12 +216,14 @@ const Navbar = () => {
               </Link>
             </li>
 
-            <li className="nav-item">
-              <Link className="nav-link" to="/nuestras-enfermeras">
-                <i className="bi bi-people-fill me-1"></i>
-                Nuestras Enfermeras
-              </Link>
-            </li>
+            {currentUser && (
+              <li className="nav-item">
+                <Link className="nav-link" to="/nuestras-enfermeras">
+                  <i className="bi bi-people-fill me-1"></i>
+                  Nuestras Enfermeras
+                </Link>
+              </li>
+            )}
 
             {/* Mostrar "Solicitar Atención" solo si NO está logueado o es paciente */}
             {(!currentUser || currentUser.rol_id === 4) && (
@@ -1137,6 +1143,37 @@ function App() {
                   }>
                     <UserEnfermerasView />
                   </Suspense>
+                } />
+
+                {/* Rutas compartidas Nurse/Recep */}
+                <Route path="/recepcionista/novedades-pacientes" element={
+                  <ProtectedRoute requiredRole={3}>
+                    <Suspense fallback={<div className="container py-5 text-center"><div className="spinner-border text-primary" /></div>}>
+                      <NovedadesPage />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+                <Route path="/recepcionista/calendario" element={
+                  <ProtectedRoute requiredRole={3}>
+                    <Suspense fallback={<div className="container py-5 text-center"><div className="spinner-border text-primary" /></div>}>
+                      <CalendarioPage />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/enfermera/novedades-pacientes" element={
+                  <ProtectedRoute requiredRole={2}>
+                    <Suspense fallback={<div className="container py-5 text-center"><div className="spinner-border text-primary" /></div>}>
+                      <NovedadesPage />
+                    </Suspense>
+                  </ProtectedRoute>
+                } />
+                <Route path="/enfermera/calendario" element={
+                  <ProtectedRoute requiredRole={2}>
+                    <Suspense fallback={<div className="container py-5 text-center"><div className="spinner-border text-primary" /></div>}>
+                      <CalendarioPage />
+                    </Suspense>
+                  </ProtectedRoute>
                 } />
 
                 {/* Redirección para rutas no encontradas */}

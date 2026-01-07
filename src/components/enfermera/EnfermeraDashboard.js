@@ -1,4 +1,5 @@
 import React, { useState, useContext } from 'react';
+import { Link } from 'react-router-dom';
 import {
     FaClipboardCheck,
     FaCalendarAlt,
@@ -1225,6 +1226,12 @@ const EnfermeraDashboard = () => {
                                 Mis Pacientes
                             </button>
                         </li>
+                        <li className="nav-item">
+                            <Link to="/enfermera/novedades-pacientes" className="nav-link text-decoration-none" style={{ color: 'inherit' }}>
+                                <FaFileMedical className="me-2" />
+                                Novedades
+                            </Link>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -1242,14 +1249,15 @@ const EnfermeraDashboard = () => {
                     )}
 
                     {activeTab === 'calendario' && (
-                        <CalendarioTurnos
-                            currentDate={currentDate}
-                            turnos={turnos}
-                            onPrevMonth={handlePrevMonth}
-                            onNextMonth={handleNextMonth}
-                            onToday={handleToday}
-                            onRegistrarAsistencia={handleRegistrarAsistencia}
-                        />
+                        <div className="text-center py-5">
+                            <FaCalendarAlt size={50} className="text-primary mb-3" />
+                            <h3>Calendario Completo</h3>
+                            <p className="text-muted">Accede al calendario completo para gestionar turnos y registrar asistencia con evidencia.</p>
+                            <Link to="/enfermera/calendario" className="btn btn-primary btn-lg">
+                                <FaCalendarAlt className="me-2" />
+                                Ver Calendario y Asistencia
+                            </Link>
+                        </div>
                     )}
 
                     {activeTab === 'pacientes' && (

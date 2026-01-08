@@ -10,25 +10,97 @@ import Register from './components/auth/Register';
 import RegisterEnfermera from './components/auth/RegisterEnfermera';
 
 // Importar dashboards usando lazy loading
-const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
-const EnfermeraDashboard = React.lazy(() => import('./components/enfermera/EnfermeraDashboard'));
+const AdminDashboard = React.lazy(() => {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve(import('./components/admin/AdminDashboard'));
+    }, 800); // 0.8 segundos para cargar
+  });
+});
+
+const EnfermeraDashboard = React.lazy(() => {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve(import('./components/enfermera/EnfermeraDashboard'));
+    }, 800);
+  });
+});
 
 // Importar componentes de admin
-const AdminRegisterEnfermera = React.lazy(() => import('./components/admin/AdminRegisterEnfermera'));
-const AdminSolicitudes = React.lazy(() => import('./components/admin/AdminSolicitudes'));
-const AdminUsuarios = React.lazy(() => import('./components/admin/AdminUsuarios'));
-const AdminCalificaciones = React.lazy(() => import('./components/admin/AdminCalificaciones'));
+const AdminRegisterEnfermera = React.lazy(() => {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve(import('./components/admin/AdminRegisterEnfermera'));
+    }, 600);
+  });
+});
+
+const AdminSolicitudes = React.lazy(() => {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve(import('./components/admin/AdminSolicitudes'));
+    }, 600);
+  });
+});
+
+const AdminUsuarios = React.lazy(() => {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve(import('./components/admin/AdminUsuarios'));
+    }, 600);
+  });
+});
+
+const AdminCalificaciones = React.lazy(() => {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve(import('./components/admin/AdminCalificaciones'));
+    }, 600);
+  });
+});
 
 // Importar componentes de recepcionista
-const RecepcionistaDashboard = React.lazy(() => import('./components/recepcionista/RecepcionistaDashboard'));
-const RecepcionistaRegisterEnfermera = React.lazy(() => import('./components/recepcionista/RecepcionistaRegisterEnfermera'));
+const RecepcionistaDashboard = React.lazy(() => {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve(import('./components/recepcionista/RecepcionistaDashboard'));
+    }, 800);
+  });
+});
+
+const RecepcionistaRegisterEnfermera = React.lazy(() => {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve(import('./components/recepcionista/RecepcionistaRegisterEnfermera'));
+    }, 600);
+  });
+});
 
 // Importar componentes de usuario
-const UserEnfermerasView = React.lazy(() => import('./components/user/UserEnfermerasView'));
+const UserEnfermerasView = React.lazy(() => {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve(import('./components/user/UserEnfermerasView'));
+    }, 1000); // 1 segundo para cargar
+  });
+});
 
 // Importar componentes compartidos
-const NovedadesPage = React.lazy(() => import('./components/shared/NovedadesPage'));
-const CalendarioPage = React.lazy(() => import('./components/shared/CalendarioPage'));
+const NovedadesPage = React.lazy(() => {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve(import('./components/shared/NovedadesPage'));
+    }, 700);
+  });
+});
+
+const CalendarioPage = React.lazy(() => {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve(import('./components/shared/CalendarioPage'));
+    }, 700);
+  });
+});
 
 // Crear contexto de autenticación
 const AuthContext = createContext();
@@ -669,6 +741,9 @@ const SolicitaAtencionPage = () => {
     setError('');
 
     try {
+      // Simular tiempo de carga antes de la petición
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
       const response = await fetch('http://localhost:3001/api/solicitudes', {
         method: 'POST',
         headers: {
@@ -904,6 +979,9 @@ const AdminSolicitudesPage = () => {
 
   const fetchSolicitudes = async () => {
     try {
+      // Simular tiempo de carga de la petición
+      await new Promise(resolve => setTimeout(resolve, 1200));
+
       const response = await fetch('http://localhost:3001/api/solicitudes');
       const data = await response.json();
       setSolicitudes(data);

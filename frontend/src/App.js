@@ -682,8 +682,20 @@ const ConoceMasPage = () => {
                 <i className="bi bi-bullseye text-primary me-2"></i>
                 Nuestra Misión
               </h2>
-              <p className="lead">En Enfermera Corazón, nuestra misión es proporcionar cuidado de enfermería de alta calidad con un toque humano.</p>
-              <p>Creemos que cada paciente merece atención personalizada y compasiva en la comodidad de su hogar. Nuestro equipo de profesionales altamente capacitados está comprometido con el bienestar de nuestros pacientes, ofreciendo no solo atención médica experta, sino también apoyo emocional y compañía.</p>
+              <p className="lead">La misión de servicio de enfermeria Maranatha esta en brindar un acompañamiento personalizado en la comodidad de tu hogar, con el compromiso de mejorar la calidad de vida y el bienestar a los pacientes y familiares, desde un concepto medico, terapéutico, psicológico.
+              </p>
+            </div>
+            <div className="card-body p-4">
+              <h2 className="h3 fw-bold mb-3">
+                <i className="bi bi-bullseye text-primary me-2"></i>
+                Nuestra Visión
+              </h2>
+              <p className="lead">El propósito de SERVICIO DE ENFERMERIA MARANATHA, lograr la mayor cantidad de pacientes y familiares con una mejor calidad de vida, y con un excelente reconocimiento en el mercado al tener un cuidado integral desde el concepto medico, terapéutico y psicológico.
+                Hacer recordar y reconocer a la sociedad  la importancia del cuidado y respeto por las personas de la tercera edad.
+                Tener unas excelentes instalaciones, donde se pueda hacer acompañamiento y cuidado a nuestros adultos mayores, hacer terapias físicas y espirituales para una recuperación integral.
+                Instruir, capacitar y actualizar al personal propio y externo en el manejo de nuevas tecnologías y procesos en la salud.
+
+              </p>
             </div>
           </div>
 

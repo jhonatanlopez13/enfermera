@@ -25,15 +25,24 @@ const turnoController = {
     registerAsistencia: async (req, res) => {
         try {
             const { id } = req.params;
-            const result = await Turno.registerAsistencia(id, req.body);
+            const data = {
+                ...req.body,
+                evidencia_foto: req.file ? req.file.filename : req.body.evidencia_foto
+            };
+
+            const result = await Turno.registerAsistencia(id, data);
 
             if (result.affectedRows === 0) {
                 return res.status(404).json({ success: false, error: 'Turno no encontrado' });
             }
-            res.json({ success: true, message: 'Asistencia registrada exitosamente' });
+            res.json({
+                success: true,
+                message: 'Asistencia registrada exitosamente',
+                evidencia_foto: data.evidencia_foto
+            });
         } catch (error) {
             console.error('❌ Error registrando asistencia:', error.message);
-            res.status(500).json({ success: false, error: 'Error registrando asistencia' });
+            res.status(500).json({ success: false, error: 'Error registrando asistencia', details: error.message });
         }
     },
 

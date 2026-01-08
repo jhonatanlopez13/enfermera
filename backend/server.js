@@ -24,6 +24,7 @@ const pacienteRoutes = require('./routes/paciente.routes');
 const novedadPacienteRoutes = require('./routes/novedadPaciente.routes');
 const solicitudesRoutes = require('./routes/solicitudes');
 const enfermeraRoutes = require('./routes/enfermera.routes');
+const pruebaMedicaRoutes = require('./routes/pruebaMedica.routes');
 
 // ========== RUTAS DEL API ========== //
 app.use('/api/auth', authRoutes);
@@ -34,6 +35,7 @@ app.use('/api/pacientes', pacienteRoutes);
 app.use('/api/novedades-pacientes', novedadPacienteRoutes);
 app.use('/api/solicitudes', solicitudesRoutes);
 app.use('/api/enfermeras', enfermeraRoutes);
+app.use('/api/pruebas', pruebaMedicaRoutes);
 
 // Ruta de salud
 app.get('/api/health', (req, res) => {

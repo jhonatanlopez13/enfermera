@@ -15,10 +15,14 @@ const novedadPacienteController = {
 
     create: async (req, res) => {
         try {
-            console.log('📥 Recibiendo novedad de paciente:', req.body);
-            const result = await NovedadPaciente.create(req.body);
+            const data = {
+                ...req.body,
+                evidencia_foto: req.file ? req.file.filename : req.body.evidencia_foto
+            };
+            console.log('📥 Recibiendo novedad de paciente:', data);
+            const result = await NovedadPaciente.create(data);
             console.log('✅ Novedad de paciente registrada con ID:', result.insertId);
-            res.json({ success: true, message: 'Novedad de paciente registrada', id: result.insertId });
+            res.json({ success: true, message: 'Novedad de paciente registrada', id: result.insertId, evidencia_foto: data.evidencia_foto });
         } catch (error) {
             console.error('❌ Error creando novedad de paciente:', error.message);
             res.status(500).json({ success: false, error: 'Error al registrar novedad', details: error.message });

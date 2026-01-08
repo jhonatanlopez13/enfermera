@@ -228,7 +228,8 @@ const PacientesList = ({ pacientes }) => {
     const [searchTerm, setSearchTerm] = useState('');
 
     const filteredPacientes = pacientes.filter(paciente =>
-        paciente.nombre_completo && paciente.nombre_completo.toLowerCase().includes(searchTerm.toLowerCase())
+        (paciente.nombre_completo && paciente.nombre_completo.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (paciente.nombre && paciente.nombre.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     return (
@@ -251,49 +252,47 @@ const PacientesList = ({ pacientes }) => {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <button type="button" className="btn btn-sm btn-outline-primary">
-                        <FaFilter className="me-1" />
-                        Filtros
-                    </button>
                 </div>
             </div>
-            <div className="card-body">
-                <div className="row">
-                    {filteredPacientes.map(paciente => (
-                        <div key={paciente.id} className="col-md-6 col-lg-4 mb-3">
-                            <div className="card h-100 border">
-                                <div className="card-body">
-                                    <div className="d-flex justify-content-between align-items-start mb-3">
-                                        <div>
-                                            <h6 className="card-title mb-1">{paciente.nombre_completo || 'Paciente sin nombre'}</h6>
-                                            <small className="text-muted">ID: #{paciente.id}</small>
+            <div className="card-body p-0">
+                <div className="table-responsive">
+                    <table className="table table-hover mb-0">
+                        <thead className="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre Completo</th>
+                                <th>Contacto</th>
+                                <th>Email</th>
+                                <th className="text-end">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredPacientes.map(paciente => (
+                                <tr key={paciente.id}>
+                                    <td><small className="text-muted">#{paciente.id}</small></td>
+                                    <td>
+                                        <div className="fw-bold">{paciente.nombre_completo || `${paciente.nombre} ${paciente.apellido}`}</div>
+                                    </td>
+                                    <td>
+                                        <small><FaUserInjured className="me-1 text-muted" /> {paciente.telefono || 'N/A'}</small>
+                                    </td>
+                                    <td>
+                                        <small>{paciente.email || 'N/A'}</small>
+                                    </td>
+                                    <td className="text-end">
+                                        <div className="btn-group btn-group-sm">
+                                            <button type="button" className="btn btn-outline-primary" title="Ver Historial">
+                                                <FaEye />
+                                            </button>
+                                            <button type="button" className="btn btn-outline-success" title="Agregar Nota">
+                                                <FaPlus />
+                                            </button>
                                         </div>
-                                        <span className="badge bg-info">Paciente</span>
-                                    </div>
-                                    <div className="paciente-info">
-                                        <div className="mb-2">
-                                            <small className="text-muted d-block">Información de contacto</small>
-                                            <div className="d-flex align-items-center gap-2">
-                                                <FaUserInjured size={12} className="text-muted" />
-                                                <small>Información disponible en historial</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="card-footer bg-transparent border-top">
-                                    <div className="d-flex gap-2">
-                                        <button type="button" className="btn btn-sm btn-outline-primary flex-grow-1">
-                                            <FaEye className="me-1" />
-                                            Ver Historial
-                                        </button>
-                                        <button type="button" className="btn btn-sm btn-outline-success">
-                                            <FaPlus />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
                 {filteredPacientes.length === 0 && (
                     <div className="text-center py-5">
@@ -973,101 +972,62 @@ const EnfermeraDashboard = () => {
     const { currentUser } = useAuth();
     const [activeTab, setActiveTab] = useState('pruebas');
 
-    // Datos de prueba estáticos
-    const [pruebas] = useState([
-        {
-            id: 1,
-            nombre_paciente: 'María González',
-            tipo_prueba: 'glucemia',
-            descripcion: 'Prueba de glucemia en ayunas',
-            resultado: '95 mg/dL (Normal)',
-            fecha_prueba: new Date().toISOString(),
-            estado: 'completada',
-            paciente_completo: 'María González'
-        },
-        {
-            id: 2,
-            nombre_paciente: 'Juan Pérez',
-            tipo_prueba: 'presión arterial',
-            descripcion: 'Control de presión arterial',
-            resultado: '120/80 mmHg (Normal)',
-            fecha_prueba: new Date().toISOString(),
-            estado: 'completada',
-            paciente_completo: 'Juan Pérez'
-        },
-        {
-            id: 3,
-            nombre_paciente: 'Ana Rodríguez',
-            tipo_prueba: 'COVID-19',
-            descripcion: 'Test rápido de antígenos',
-            resultado: 'Negativo',
-            fecha_prueba: new Date().toISOString(),
-            estado: 'pendiente',
-            paciente_completo: 'Ana Rodríguez'
-        }
-    ]);
+    const [pruebas, setPruebas] = useState([]);
+    const [turnos, setTurnos] = useState([]);
+    const [pacientes, setPacientes] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    const [turnos] = useState([
-        {
-            id: 1,
-            fecha: new Date().toISOString().split('T')[0],
-            turno: 'matutino',
-            hora_inicio: '08:00',
-            hora_fin: '16:00',
-            ubicacion: 'Hospital Central - Piso 3',
-            asistio: 0,
-            evidencia_foto: null
-        },
-        {
-            id: 2,
-            fecha: new Date(Date.now() + 86400000).toISOString().split('T')[0], // Mañana
-            turno: 'vespertino',
-            hora_inicio: '16:00',
-            hora_fin: '00:00',
-            ubicacion: 'Clínica Norte',
-            asistio: 1,
-            evidencia_foto: 'foto_turno.jpg'
-        }
-    ]);
-
-    const [pacientes] = useState([
-        {
-            id: 1,
-            nombre_completo: 'María González',
-            telefono: '555-1234',
-            email: 'maria.gonzalez@email.com'
-        },
-        {
-            id: 2,
-            nombre_completo: 'Juan Pérez',
-            telefono: '555-5678',
-            email: 'juan.perez@email.com'
-        },
-        {
-            id: 3,
-            nombre_completo: 'Ana Rodríguez',
-            telefono: '555-9012',
-            email: 'ana.rodriguez@email.com'
-        },
-        {
-            id: 4,
-            nombre_completo: 'Carlos López',
-            telefono: '555-3456',
-            email: 'carlos.lopez@email.com'
-        }
-    ]);
-
-    const [estadisticas] = useState({
-        total_pruebas: 3,
-        pruebas_completadas: 2,
-        pruebas_pendientes: 1,
-        turnos_este_mes: 1
+    const [estadisticas, setEstadisticas] = useState({
+        total_pruebas: 0,
+        pruebas_completadas: 0,
+        pruebas_pendientes: 0,
+        turnos_este_mes: 0
     });
 
     const [currentDate, setCurrentDate] = useState(new Date());
     const [showAddPruebaModal, setShowAddPruebaModal] = useState(false);
     const [showAsistenciaModal, setShowAsistenciaModal] = useState(false);
     const [selectedTurno, setSelectedTurno] = useState(null);
+
+    const fetchData = React.useCallback(async () => {
+        if (!currentUser) return;
+        setLoading(true);
+        try {
+            // Fetch pruebas
+            const pruebasRes = await fetch(`http://localhost:3001/api/pruebas?enfermeraId=${currentUser.id}`);
+            const pruebasData = await pruebasRes.json();
+            setPruebas(Array.isArray(pruebasData) ? pruebasData : []);
+
+            // Fetch pacientes
+            const pacientesRes = await fetch('http://localhost:3001/api/pacientes');
+            const pacientesData = await pacientesRes.json();
+            setPacientes(Array.isArray(pacientesData) ? pacientesData : []);
+
+            // Fetch turnos (simulado o real si existe endpoint)
+            const turnosRes = await fetch(`http://localhost:3001/api/turnos?enfermeraId=${currentUser.id}`);
+            const turnosData = await turnosRes.json();
+            setTurnos(Array.isArray(turnosData) ? turnosData : []);
+
+            // Calcular estadísticas básicas
+            if (Array.isArray(pruebasData)) {
+                const completadas = pruebasData.filter(p => p.estado === 'completada').length;
+                setEstadisticas({
+                    total_pruebas: pruebasData.length,
+                    pruebas_completadas: completadas,
+                    pruebas_pendientes: pruebasData.length - completadas,
+                    turnos_este_mes: Array.isArray(turnosData) ? turnosData.length : 0
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching dashboard data:', error);
+        } finally {
+            setLoading(false);
+        }
+    }, [currentUser]);
+
+    React.useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
     const handlePrevMonth = () => {
         setCurrentDate(subMonths(currentDate, 1));
@@ -1087,21 +1047,18 @@ const EnfermeraDashboard = () => {
     };
 
     const handleRefreshPruebas = () => {
-        alert('Funcionalidad de recarga activada - en un entorno real, esto recargaría los datos del servidor');
-        // En un entorno real, aquí se haría fetch a la API
+        fetchData();
     };
 
     const handleSuccessAddPrueba = () => {
         setShowAddPruebaModal(false);
-        alert('Prueba agregada exitosamente - en un entorno real, los datos se actualizarían');
-        // En un entorno real, aquí se recargarían los datos
+        fetchData();
     };
 
     const handleSuccessAsistencia = () => {
         setShowAsistenciaModal(false);
         setSelectedTurno(null);
-        alert('Asistencia registrada exitosamente - en un entorno real, los datos se actualizarían');
-        // En un entorno real, aquí se recargarían los datos
+        fetchData();
     };
 
     return (

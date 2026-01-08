@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const solicitudesController = require('../controllers/solicitudesController');
+const solicitudesController = require('../controllers/solicitudes.controller');
 
 // Middleware para convertir BigInt a String
 const bigIntToStringMiddleware = (req, res, next) => {

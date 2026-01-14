@@ -1156,16 +1156,6 @@ const EnfermeraDashboard = () => {
                         <li className="nav-item">
                             <button
                                 type="button"
-                                className={`nav-link ${activeTab === 'pruebas' ? 'active' : ''}`}
-                                onClick={() => setActiveTab('pruebas')}
-                            >
-                                <FaClipboardCheck className="me-2" />
-                                Pruebas Médicas
-                            </button>
-                        </li>
-                        <li className="nav-item">
-                            <button
-                                type="button"
                                 className={`nav-link ${activeTab === 'calendario' ? 'active' : ''}`}
                                 onClick={() => setActiveTab('calendario')}
                             >

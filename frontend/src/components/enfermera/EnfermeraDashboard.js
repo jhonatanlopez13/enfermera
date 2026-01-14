@@ -712,6 +712,26 @@ const PruebasMedicas = ({ pruebas, pacientes, onRefresh, onAddPrueba }) => {
     const [filter, setFilter] = useState('todas');
     const [showDetalle, setShowDetalle] = useState(false);
     const [pruebaDetalle, setPruebaDetalle] = useState(null);
+    const [novedadesPacientes, setNovedadesPacientes] = useState([]);
+    const [loadingNovedades, setLoadingNovedades] = useState(false);
+
+    // Cargar novedades de pacientes
+    React.useEffect(() => {
+        const loadNovedades = async () => {
+            setLoadingNovedades(true);
+            try {
+                const response = await fetch('http://localhost:3001/api/novedades-pacientes');
+                const data = await response.json();
+                setNovedadesPacientes(Array.isArray(data) ? data : []);
+            } catch (error) {
+                console.error('Error cargando novedades:', error);
+                setNovedadesPacientes([]);
+            } finally {
+                setLoadingNovedades(false);
+            }
+        };
+        loadNovedades();
+    }, []);
 
     const filteredPruebas = pruebas.filter(prueba => {
         if (filter === 'todas') return true;
@@ -719,6 +739,16 @@ const PruebasMedicas = ({ pruebas, pacientes, onRefresh, onAddPrueba }) => {
         if (filter === 'pendientes') return prueba.estado === 'pendiente';
         return true;
     });
+
+    const getTipoBadgeClass = (tipo) => {
+        switch (tipo) {
+            case 'mejoria': return 'bg-success';
+            case 'empeoramiento': return 'bg-danger';
+            case 'estable': return 'bg-info';
+            case 'observacion': return 'bg-warning';
+            default: return 'bg-secondary';
+        }
+    };
 
     const handleUpdateEstado = async (id, nuevoEstado) => {
         try {
@@ -756,133 +786,78 @@ const PruebasMedicas = ({ pruebas, pacientes, onRefresh, onAddPrueba }) => {
 
     return (
         <>
-            <div className="card shadow">
-                <div className="card-header bg-white d-flex justify-content-between align-items-center">
+
+
+            {/* Listado de Novedades de Pacientes */}
+            <div className="card shadow mt-4">
+                <div className="card-header bg-white">
                     <h5 className="mb-0">
-                        <FaClipboardCheck className="me-2 text-primary" />
-                        Registro de Pruebas Médicas
+                        <FaFileMedical className="me-2 text-info" />
+                        Novedades de Pacientes
                     </h5>
-                    <div className="d-flex gap-2">
-                        <div className="btn-group">
-                            <button
-                                type="button"
-                                className={`btn btn-sm ${filter === 'todas' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                onClick={() => setFilter('todas')}
-                            >
-                                Todas
-                            </button>
-                            <button
-                                type="button"
-                                className={`btn btn-sm ${filter === 'completadas' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                onClick={() => setFilter('completadas')}
-                            >
-                                Completadas
-                            </button>
-                            <button
-                                type="button"
-                                className={`btn btn-sm ${filter === 'pendientes' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                onClick={() => setFilter('pendientes')}
-                            >
-                                Pendientes
-                            </button>
-                        </div>
-                        <button
-                            type="button"
-                            className="btn btn-primary btn-sm"
-                            onClick={onAddPrueba}
-                        >
-                            <FaPlus className="me-1" /> Nueva Prueba
-                        </button>
-                    </div>
+                    
                 </div>
-                <div className="card-body">
-                    <div className="table-responsive">
-                        <table className="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Paciente</th>
-                                    <th>Tipo de Prueba</th>
-                                    <th>Fecha</th>
-                                    <th>Descripción</th>
-                                    <th>Resultado</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredPruebas.map(prueba => (
-                                    <tr key={prueba.id} className={prueba.estado === 'pendiente' ? 'table-warning' : 'table-success'}>
-                                        <td>
-                                            <strong>{prueba.nombre_paciente || 'Paciente sin nombre'}</strong>
-                                            {prueba.paciente_completo && (
-                                                <div>
-                                                    <small className="text-muted">{prueba.paciente_completo}</small>
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td>
-                                            <span className="badge bg-info">{prueba.tipo_prueba || 'No especificado'}</span>
-                                        </td>
-                                        <td>{prueba.fecha_prueba ? format(new Date(prueba.fecha_prueba), 'dd/MM/yyyy') : 'Sin fecha'}</td>
-                                        <td>
-                                            <div className="text-truncate" style={{ maxWidth: '200px' }}>
-                                                {prueba.descripcion || 'Sin descripción'}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            {prueba.resultado ? (
-                                                <span className="text-success">{prueba.resultado}</span>
-                                            ) : (
-                                                <span className="text-muted">Sin resultado</span>
-                                            )}
-                                        </td>
-                                        <td>
-                                            <span className={`badge ${prueba.estado === 'completada' ? 'bg-success' : 'bg-warning'}`}>
-                                                {prueba.estado === 'completada' ? 'Completada' : 'Pendiente'}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div className="btn-group btn-group-sm">
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-outline-info"
-                                                    onClick={() => handleViewDetalle(prueba)}
-                                                    title="Ver detalles"
-                                                >
-                                                    <FaEye />
-                                                </button>
-                                                {prueba.estado === 'pendiente' && (
-                                                    <button
-                                                        type="button"
-                                                        className="btn btn-outline-success"
-                                                        onClick={() => handleUpdateEstado(prueba.id, 'completada')}
-                                                        title="Marcar como completada"
-                                                    >
-                                                        <FaCheckCircle />
-                                                    </button>
-                                                )}
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-outline-danger"
-                                                    onClick={() => handleDeletePrueba(prueba.id)}
-                                                    title="Eliminar"
-                                                >
-                                                    <FaTrash />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        {filteredPruebas.length === 0 && (
-                            <div className="text-center py-4">
-                                <FaClipboardCheck size={48} className="text-muted mb-3" />
-                                <h5>No hay pruebas registradas</h5>
-                                <p className="text-muted">Agrega una nueva prueba para comenzar</p>
+                <div className="card-body p-0">
+                    {loadingNovedades ? (
+                        <div className="text-center py-5">
+                            <div className="spinner-border text-primary" role="status">
+                                <span className="visually-hidden">Cargando...</span>
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    ) : novedadesPacientes.length === 0 ? (
+                        <div className="text-center py-5">
+                            <FaFileMedical size={48} className="text-muted mb-3" />
+                            <h5>No hay novedades de pacientes</h5>
+                            <p className="text-muted">No se encontraron novedades registradas</p>
+                        </div>
+                    ) : (
+                        <div className="table-responsive">
+                            <table className="table table-hover mb-0">
+                                <thead className="table-light">
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Paciente</th>
+                                        <th>Tipo</th>
+                                        <th>Descripción</th>
+                                        <th className="text-center">Evidencia</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {novedadesPacientes.map(novedad => (
+                                        <tr key={novedad.id}>
+                                            <td>
+                                                <small className="text-muted">
+                                                    <FaCalendarDay className="me-1" />
+                                                    {new Date(novedad.fecha).toLocaleDateString('es-ES')}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <div className="fw-bold">
+                                                    {novedad.nombre} {novedad.apellido}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span className={`badge ${getTipoBadgeClass(novedad.tipo_novedad)}`}>
+                                                    {novedad.tipo_novedad}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <small>{novedad.descripcion}</small>
+                                            </td>
+                                            <td className="text-center">
+                                                {novedad.evidencia_foto && (
+                                                    <span className="badge bg-success">
+                                                        <FaCamera className="me-1" />
+                                                        Foto
+                                                    </span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -962,7 +937,8 @@ const PruebasMedicas = ({ pruebas, pacientes, onRefresh, onAddPrueba }) => {
                         </div>
                     </div>
                 </div>
-            )}
+            )
+            }
         </>
     );
 };
@@ -976,6 +952,8 @@ const EnfermeraDashboard = () => {
     const [turnos, setTurnos] = useState([]);
     const [pacientes, setPacientes] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [novedadesPacientes, setNovedadesPacientes] = useState([]);
+    const [loadingNovedades, setLoadingNovedades] = useState(false);
 
     const [estadisticas, setEstadisticas] = useState({
         total_pruebas: 0,
@@ -988,6 +966,32 @@ const EnfermeraDashboard = () => {
     const [showAddPruebaModal, setShowAddPruebaModal] = useState(false);
     const [showAsistenciaModal, setShowAsistenciaModal] = useState(false);
     const [selectedTurno, setSelectedTurno] = useState(null);
+
+    // Cargar novedades de pacientes
+    const loadNovedadesPacientes = React.useCallback(async () => {
+        setLoadingNovedades(true);
+        try {
+            const response = await fetch('http://localhost:3001/api/novedades-pacientes');
+            const data = await response.json();
+            setNovedadesPacientes(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error('Error cargando novedades:', error);
+            setNovedadesPacientes([]);
+        } finally {
+            setLoadingNovedades(false);
+        }
+    }, []);
+
+    // Función para obtener clase de badge según tipo de novedad
+    const getTipoBadgeClass = (tipo) => {
+        switch (tipo) {
+            case 'mejoria': return 'bg-success';
+            case 'empeoramiento': return 'bg-danger';
+            case 'estable': return 'bg-info';
+            case 'observacion': return 'bg-warning';
+            default: return 'bg-secondary';
+        }
+    };
 
     const fetchData = React.useCallback(async () => {
         if (!currentUser) return;
@@ -1018,6 +1022,9 @@ const EnfermeraDashboard = () => {
                     turnos_este_mes: Array.isArray(turnosData) ? turnosData.length : 0
                 });
             }
+
+            // Cargar novedades de pacientes
+            await loadNovedadesPacientes();
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
         } finally {
@@ -1174,9 +1181,19 @@ const EnfermeraDashboard = () => {
                             </button>
                         </li>
                         <li className="nav-item">
-                            <Link to="/enfermera/novedades-pacientes" className="nav-link text-decoration-none" style={{ color: 'inherit' }}>
+                            <button
+                                type="button"
+                                className={`nav-link ${activeTab === 'novedades' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('novedades')}
+                            >
                                 <FaFileMedical className="me-2" />
-                                Novedades
+                                Novedades de Pacientes
+                            </button>
+                        </li>
+                        <li className="nav-item">
+                            <Link to="/enfermera/novedades-pacientes" className="nav-link text-decoration-none" style={{ color: 'inherit' }}>
+                                <FaPlus className="me-2" />
+                                Crear Novedad
                             </Link>
                         </li>
                     </ul>

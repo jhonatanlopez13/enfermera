@@ -20,7 +20,8 @@ import {
     FaTimes,
     FaSave,
     FaUpload,
-    FaEye
+    FaEye,
+    FaSync
 } from 'react-icons/fa';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -498,13 +499,14 @@ const AddPruebaModal = ({ pacientes, enfermeraId, onClose, onSuccess }) => {
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 
 // Modal para registrar asistencia
 const AsistenciaModal = ({ turno, onClose, onSuccess }) => {
+    const [horaActual, setHoraActual] = useState('');
     const [formData, setFormData] = useState({
         hora_entrada: '',
         hora_salida: '',
@@ -514,20 +516,22 @@ const AsistenciaModal = ({ turno, onClose, onSuccess }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // Inicializar con hora actual (sin useEffect)
-    const now = new Date();
-    const horaActual = now.toTimeString().split(' ')[0].substring(0, 5);
-    const initialFormData = {
-        hora_entrada: horaActual,
-        hora_salida: '',
-        observaciones: `Asistencia registrada el ${format(new Date(), 'dd/MM/yyyy')}`
-    };
+    // Inicializar con hora actual
+    React.useEffect(() => {
+        const now = new Date();
+        const horaActualStr = now.toTimeString().split(' ')[0].substring(0, 5);
+        setHoraActual(horaActualStr);
 
-    const [localFormData, setLocalFormData] = useState(initialFormData);
+        setFormData({
+            hora_entrada: horaActualStr,
+            hora_salida: '',
+            observaciones: `Asistencia registrada el ${format(new Date(), 'dd/MM/yyyy')}`
+        });
+    }, []);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setLocalFormData(prev => ({
+        setFormData(prev => ({
             ...prev,
             [name]: value
         }));
@@ -546,9 +550,9 @@ const AsistenciaModal = ({ turno, onClose, onSuccess }) => {
         setError('');
 
         const formDataToSend = new FormData();
-        formDataToSend.append('hora_entrada', localFormData.hora_entrada);
-        formDataToSend.append('hora_salida', localFormData.hora_salida);
-        formDataToSend.append('observaciones', localFormData.observaciones);
+        formDataToSend.append('hora_entrada', formData.hora_entrada);
+        formDataToSend.append('hora_salida', formData.hora_salida);
+        formDataToSend.append('observaciones', formData.observaciones);
 
         if (evidenciaFoto) {
             formDataToSend.append('evidencia_foto', evidenciaFoto);
@@ -625,7 +629,7 @@ const AsistenciaModal = ({ turno, onClose, onSuccess }) => {
                                     type="time"
                                     className="form-control"
                                     name="hora_entrada"
-                                    value={localFormData.hora_entrada}
+                                    value={formData.hora_entrada}
                                     onChange={handleChange}
                                     required
                                 />
@@ -637,7 +641,7 @@ const AsistenciaModal = ({ turno, onClose, onSuccess }) => {
                                     type="time"
                                     className="form-control"
                                     name="hora_salida"
-                                    value={localFormData.hora_salida}
+                                    value={formData.hora_salida}
                                     onChange={handleChange}
                                 />
                             </div>
@@ -677,7 +681,7 @@ const AsistenciaModal = ({ turno, onClose, onSuccess }) => {
                                     className="form-control"
                                     name="observaciones"
                                     rows="3"
-                                    value={localFormData.observaciones}
+                                    value={formData.observaciones}
                                     onChange={handleChange}
                                     placeholder="Observaciones adicionales sobre la asistencia"
                                 />
@@ -707,31 +711,10 @@ const AsistenciaModal = ({ turno, onClose, onSuccess }) => {
     );
 };
 
-// Componente de Pruebas Médicas
 const PruebasMedicas = ({ pruebas, pacientes, onRefresh, onAddPrueba }) => {
     const [filter, setFilter] = useState('todas');
     const [showDetalle, setShowDetalle] = useState(false);
     const [pruebaDetalle, setPruebaDetalle] = useState(null);
-    const [novedadesPacientes, setNovedadesPacientes] = useState([]);
-    const [loadingNovedades, setLoadingNovedades] = useState(false);
-
-    // Cargar novedades de pacientes
-    React.useEffect(() => {
-        const loadNovedades = async () => {
-            setLoadingNovedades(true);
-            try {
-                const response = await fetch('http://localhost:3001/api/novedades-pacientes');
-                const data = await response.json();
-                setNovedadesPacientes(Array.isArray(data) ? data : []);
-            } catch (error) {
-                console.error('Error cargando novedades:', error);
-                setNovedadesPacientes([]);
-            } finally {
-                setLoadingNovedades(false);
-            }
-        };
-        loadNovedades();
-    }, []);
 
     const filteredPruebas = pruebas.filter(prueba => {
         if (filter === 'todas') return true;
@@ -740,12 +723,13 @@ const PruebasMedicas = ({ pruebas, pacientes, onRefresh, onAddPrueba }) => {
         return true;
     });
 
-    const getTipoBadgeClass = (tipo) => {
+    const getTipoPruebaBadgeClass = (tipo) => {
         switch (tipo) {
-            case 'mejoria': return 'bg-success';
-            case 'empeoramiento': return 'bg-danger';
-            case 'estable': return 'bg-info';
-            case 'observacion': return 'bg-warning';
+            case 'glucemia': return 'bg-info';
+            case 'presión arterial': return 'bg-warning';
+            case 'COVID-19': return 'bg-danger';
+            case 'alergias': return 'bg-success';
+            case 'hemograma': return 'bg-primary';
             default: return 'bg-secondary';
         }
     };
@@ -786,76 +770,139 @@ const PruebasMedicas = ({ pruebas, pacientes, onRefresh, onAddPrueba }) => {
 
     return (
         <>
-
-
-            {/* Listado de Novedades de Pacientes */}
-            <div className="card shadow mt-4">
+            <div className="card shadow">
                 <div className="card-header bg-white">
-                    <h5 className="mb-0">
-                        <FaFileMedical className="me-2 text-info" />
-                        Novedades de Pacientes
-                    </h5>
-                    
+                    <div className="d-flex justify-content-between align-items-center">
+                        <h5 className="mb-0">
+                            <FaClipboardCheck className="me-2 text-primary" />
+                            Pruebas Médicas
+                        </h5>
+                        <div className="d-flex gap-2">
+                            <button
+                                className="btn btn-sm btn-outline-primary"
+                                onClick={onRefresh}
+                            >
+                                <FaSync className="me-1" />
+                                Actualizar
+                            </button>
+                            <button
+                                className="btn btn-sm btn-primary"
+                                onClick={onAddPrueba}
+                            >
+                                <FaPlus className="me-1" />
+                                Nueva Prueba
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div className="card-body p-0">
-                    {loadingNovedades ? (
-                        <div className="text-center py-5">
-                            <div className="spinner-border text-primary" role="status">
-                                <span className="visually-hidden">Cargando...</span>
-                            </div>
+                <div className="card-body">
+                    {/* Filtros */}
+                    <div className="mb-3">
+                        <div className="btn-group" role="group">
+                            <button
+                                type="button"
+                                className={`btn btn-sm ${filter === 'todas' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                onClick={() => setFilter('todas')}
+                            >
+                                Todas
+                            </button>
+                            <button
+                                type="button"
+                                className={`btn btn-sm ${filter === 'pendientes' ? 'btn-warning' : 'btn-outline-warning'}`}
+                                onClick={() => setFilter('pendientes')}
+                            >
+                                Pendientes
+                            </button>
+                            <button
+                                type="button"
+                                className={`btn btn-sm ${filter === 'completadas' ? 'btn-success' : 'btn-outline-success'}`}
+                                onClick={() => setFilter('completadas')}
+                            >
+                                Completadas
+                            </button>
                         </div>
-                    ) : novedadesPacientes.length === 0 ? (
-                        <div className="text-center py-5">
-                            <FaFileMedical size={48} className="text-muted mb-3" />
-                            <h5>No hay novedades de pacientes</h5>
-                            <p className="text-muted">No se encontraron novedades registradas</p>
-                        </div>
-                    ) : (
-                        <div className="table-responsive">
-                            <table className="table table-hover mb-0">
-                                <thead className="table-light">
-                                    <tr>
-                                        <th>Fecha</th>
-                                        <th>Paciente</th>
-                                        <th>Tipo</th>
-                                        <th>Descripción</th>
-                                        <th className="text-center">Evidencia</th>
+                    </div>
+
+                    {/* Lista de pruebas */}
+                    <div className="table-responsive">
+                        <table className="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Paciente</th>
+                                    <th>Tipo</th>
+                                    <th>Fecha</th>
+                                    <th>Estado</th>
+                                    <th className="text-end">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredPruebas.map(prueba => (
+                                    <tr key={prueba.id}>
+                                        <td>
+                                            <div className="fw-bold">{prueba.nombre_paciente}</div>
+                                            <small className="text-muted">ID: {prueba.paciente_id}</small>
+                                        </td>
+                                        <td>
+                                            <span className={`badge ${getTipoPruebaBadgeClass(prueba.tipo_prueba)}`}>
+                                                {prueba.tipo_prueba}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {format(new Date(prueba.fecha_prueba), 'dd/MM/yyyy')}
+                                        </td>
+                                        <td>
+                                            <span className={`badge ${prueba.estado === 'completada' ? 'bg-success' : 'bg-warning'}`}>
+                                                {prueba.estado === 'completada' ? 'Completada' : 'Pendiente'}
+                                            </span>
+                                        </td>
+                                        <td className="text-end">
+                                            <div className="btn-group btn-group-sm">
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-outline-primary"
+                                                    onClick={() => handleViewDetalle(prueba)}
+                                                >
+                                                    <FaEye />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-outline-success"
+                                                    onClick={() => handleUpdateEstado(prueba.id, 'completada')}
+                                                    disabled={prueba.estado === 'completada'}
+                                                >
+                                                    <FaCheckCircle />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-outline-danger"
+                                                    onClick={() => handleDeletePrueba(prueba.id)}
+                                                >
+                                                    <FaTrash />
+                                                </button>
+                                            </div>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    {novedadesPacientes.map(novedad => (
-                                        <tr key={novedad.id}>
-                                            <td>
-                                                <small className="text-muted">
-                                                    <FaCalendarDay className="me-1" />
-                                                    {new Date(novedad.fecha).toLocaleDateString('es-ES')}
-                                                </small>
-                                            </td>
-                                            <td>
-                                                <div className="fw-bold">
-                                                    {novedad.nombre} {novedad.apellido}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className={`badge ${getTipoBadgeClass(novedad.tipo_novedad)}`}>
-                                                    {novedad.tipo_novedad}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <small>{novedad.descripcion}</small>
-                                            </td>
-                                            <td className="text-center">
-                                                {novedad.evidencia_foto && (
-                                                    <span className="badge bg-success">
-                                                        <FaCamera className="me-1" />
-                                                        Foto
-                                                    </span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {filteredPruebas.length === 0 && (
+                        <div className="text-center py-4">
+                            <FaClipboardCheck size={48} className="text-muted mb-3" />
+                            <h5>No hay pruebas médicas</h5>
+                            <p className="text-muted">
+                                {filter === 'todas'
+                                    ? 'No se han registrado pruebas médicas'
+                                    : `No hay pruebas ${filter}`}
+                            </p>
+                            <button
+                                className="btn btn-primary"
+                                onClick={onAddPrueba}
+                            >
+                                <FaPlus className="me-1" />
+                                Crear primera prueba
+                            </button>
                         </div>
                     )}
                 </div>
@@ -885,7 +932,9 @@ const PruebasMedicas = ({ pruebas, pacientes, onRefresh, onAddPrueba }) => {
                                 <div className="col-md-6 mb-3">
                                     <label className="form-label text-muted">Tipo de Prueba</label>
                                     <div>
-                                        <span className="badge bg-info">{pruebaDetalle.tipo_prueba || 'No especificado'}</span>
+                                        <span className={`badge ${getTipoPruebaBadgeClass(pruebaDetalle.tipo_prueba)}`}>
+                                            {pruebaDetalle.tipo_prueba || 'No especificado'}
+                                        </span>
                                     </div>
                                 </div>
                                 <div className="col-md-6 mb-3">
@@ -907,7 +956,7 @@ const PruebasMedicas = ({ pruebas, pacientes, onRefresh, onAddPrueba }) => {
                                 {pruebaDetalle.resultado && (
                                     <div className="col-12 mb-3">
                                         <label className="form-label text-muted">Resultado</label>
-                                        <div className="p-3 bg-success text-white rounded">
+                                        <div className="p-3 bg-light rounded">
                                             {pruebaDetalle.resultado}
                                         </div>
                                     </div>
@@ -937,16 +986,42 @@ const PruebasMedicas = ({ pruebas, pacientes, onRefresh, onAddPrueba }) => {
                         </div>
                     </div>
                 </div>
-            )
-            }
+            )}
         </>
     );
+};
+
+// Función para obtener clase de badge según tipo de novedad
+const getTipoNovedadBadgeClass = (tipo) => {
+    // Convertir a minúsculas para evitar problemas de mayúsculas/minúsculas
+    const tipoLower = tipo?.toLowerCase() || '';
+
+    switch (tipoLower) {
+        case 'mejoria':
+        case 'mejoría':
+        case 'mejora':
+            return 'bg-success';
+        case 'empeoramiento':
+        case 'empeora':
+            return 'bg-danger';
+        case 'estable':
+            return 'bg-info';
+        case 'observacion':
+        case 'observación':
+            return 'bg-warning';
+        case 'alerta':
+            return 'bg-danger';
+        case 'rutina':
+            return 'bg-secondary';
+        default:
+            return 'bg-secondary';
+    }
 };
 
 // Componente principal del Dashboard de Enfermera
 const EnfermeraDashboard = () => {
     const { currentUser } = useAuth();
-    const [activeTab, setActiveTab] = useState('pruebas');
+    const [activeTab, setActiveTab] = useState('novedades');
 
     const [pruebas, setPruebas] = useState([]);
     const [turnos, setTurnos] = useState([]);
@@ -967,49 +1042,70 @@ const EnfermeraDashboard = () => {
     const [showAsistenciaModal, setShowAsistenciaModal] = useState(false);
     const [selectedTurno, setSelectedTurno] = useState(null);
 
-    // Cargar novedades de pacientes
-    const loadNovedadesPacientes = React.useCallback(async () => {
+    // Función para cargar novedades de pacientes
+    const loadNovedadesPacientes = async () => {
         setLoadingNovedades(true);
         try {
+            console.log('Cargando novedades de pacientes...');
             const response = await fetch('http://localhost:3001/api/novedades-pacientes');
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+
             const data = await response.json();
-            setNovedadesPacientes(Array.isArray(data) ? data : []);
+            console.log('Datos recibidos de novedades:', data);
+
+            // Validar que los datos sean un array
+            if (!Array.isArray(data)) {
+                console.warn('Los datos de novedades no son un array:', data);
+                setNovedadesPacientes([]);
+                return;
+            }
+
+            // Validar que cada novedad tenga los campos mínimos requeridos
+            const validatedData = data.filter(item =>
+                item &&
+                typeof item === 'object' &&
+                item.id !== undefined
+            );
+
+            console.log('Datos validados:', validatedData);
+            setNovedadesPacientes(validatedData);
+
         } catch (error) {
             console.error('Error cargando novedades:', error);
             setNovedadesPacientes([]);
         } finally {
             setLoadingNovedades(false);
-        }
-    }, []);
-
-    // Función para obtener clase de badge según tipo de novedad
-    const getTipoBadgeClass = (tipo) => {
-        switch (tipo) {
-            case 'mejoria': return 'bg-success';
-            case 'empeoramiento': return 'bg-danger';
-            case 'estable': return 'bg-info';
-            case 'observacion': return 'bg-warning';
-            default: return 'bg-secondary';
+            console.log('Carga de novedades completada');
         }
     };
 
+    // Función para cargar datos principales
     const fetchData = React.useCallback(async () => {
         if (!currentUser) return;
+        console.log('Iniciando fetchData...');
         setLoading(true);
         try {
             // Fetch pruebas
+            console.log('Fetching pruebas...');
             const pruebasRes = await fetch(`http://localhost:3001/api/pruebas?enfermeraId=${currentUser.id}`);
             const pruebasData = await pruebasRes.json();
+            console.log('Pruebas recibidas:', pruebasData);
             setPruebas(Array.isArray(pruebasData) ? pruebasData : []);
 
             // Fetch pacientes
+            console.log('Fetching pacientes...');
             const pacientesRes = await fetch('http://localhost:3001/api/pacientes');
             const pacientesData = await pacientesRes.json();
+            console.log('Pacientes recibidos:', pacientesData);
             setPacientes(Array.isArray(pacientesData) ? pacientesData : []);
 
-            // Fetch turnos (simulado o real si existe endpoint)
+            // Fetch turnos
+            console.log('Fetching turnos...');
             const turnosRes = await fetch(`http://localhost:3001/api/turnos?enfermeraId=${currentUser.id}`);
             const turnosData = await turnosRes.json();
+            console.log('Turnos recibidos:', turnosData);
             setTurnos(Array.isArray(turnosData) ? turnosData : []);
 
             // Calcular estadísticas básicas
@@ -1023,18 +1119,28 @@ const EnfermeraDashboard = () => {
                 });
             }
 
-            // Cargar novedades de pacientes
-            await loadNovedadesPacientes();
+            console.log('FetchData completado');
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
         } finally {
             setLoading(false);
+            console.log('Loading establecido a false');
         }
     }, [currentUser]);
 
+    // Cargar datos principales al montar el componente
     React.useEffect(() => {
+        console.log('Componente montado, cargando datos...');
         fetchData();
     }, [fetchData]);
+
+    // Cargar novedades separadamente
+    React.useEffect(() => {
+        if (activeTab === 'novedades') {
+            console.log('Pestaña de novedades activa, cargando novedades...');
+            loadNovedadesPacientes();
+        }
+    }, [activeTab]);
 
     const handlePrevMonth = () => {
         setCurrentDate(subMonths(currentDate, 1));
@@ -1163,6 +1269,16 @@ const EnfermeraDashboard = () => {
                         <li className="nav-item">
                             <button
                                 type="button"
+                                className={`nav-link ${activeTab === 'pruebas' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('pruebas')}
+                            >
+                                <FaClipboardCheck className="me-2" />
+                                Pruebas Médicas
+                            </button>
+                        </li>
+                        <li className="nav-item">
+                            <button
+                                type="button"
                                 className={`nav-link ${activeTab === 'calendario' ? 'active' : ''}`}
                                 onClick={() => setActiveTab('calendario')}
                             >
@@ -1226,6 +1342,116 @@ const EnfermeraDashboard = () => {
 
                     {activeTab === 'pacientes' && (
                         <PacientesList pacientes={pacientes} />
+                    )}
+
+                    {activeTab === 'novedades' && (
+                        <div className="card shadow">
+                            <div className="card-header bg-white">
+                                <div className="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 className="mb-0">
+                                        <FaFileMedical className="me-2 text-info" />
+                                        Novedades de Pacientes
+                                    </h5>
+                                    <button
+                                        className="btn btn-sm btn-outline-primary"
+                                        onClick={loadNovedadesPacientes}
+                                        disabled={loadingNovedades}
+                                    >
+                                        <FaSync className={loadingNovedades ? 'fa-spin me-1' : 'me-1'} />
+                                        Actualizar
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="card-body p-0">
+                                {loadingNovedades ? (
+                                    <div className="text-center py-5">
+                                        <div className="spinner-border text-primary" role="status">
+                                            <span className="visually-hidden">Cargando...</span>
+                                        </div>
+                                        <p className="mt-3">Cargando novedades...</p>
+                                    </div>
+                                ) : novedadesPacientes.length === 0 ? (
+                                    <div className="text-center py-5">
+                                        <FaFileMedical size={48} className="text-muted mb-3" />
+                                        <h5>No hay novedades de pacientes</h5>
+                                        <p className="text-muted">No se encontraron novedades registradas</p>
+                                        <button
+                                            className="btn btn-primary"
+                                            onClick={loadNovedadesPacientes}
+                                        >
+                                            <FaSync className="me-1" />
+                                            Intentar de nuevo
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="table-responsive">
+                                        <table className="table table-hover mb-0">
+                                            <thead className="table-light">
+                                                <tr>
+                                                    <th>Fecha</th>
+                                                    <th>Paciente</th>
+                                                    <th>Tipo</th>
+                                                    <th>Descripción</th>
+                                                    <th className="text-center">Evidencia</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {novedadesPacientes.map(novedad => {
+                                                    // Obtener nombre del paciente de manera segura
+                                                    const nombrePaciente = novedad.nombre_paciente ||
+                                                        (novedad.nombre && novedad.apellido ?
+                                                            `${novedad.nombre} ${novedad.apellido}` :
+                                                            novedad.paciente_nombre || 'Paciente no identificado');
+
+                                                    // Obtener tipo de novedad de manera segura
+                                                    const tipoNovedad = novedad.tipo_novedad ||
+                                                        novedad.tipo ||
+                                                        'Sin tipo';
+
+                                                    return (
+                                                        <tr key={novedad.id}>
+                                                            <td>
+                                                                <small className="text-muted">
+                                                                    <FaCalendarDay className="me-1" />
+                                                                    {novedad.fecha ?
+                                                                        new Date(novedad.fecha).toLocaleDateString('es-ES') :
+                                                                        'Sin fecha'}
+                                                                </small>
+                                                            </td>
+                                                            <td>
+                                                                <div className="fw-bold">
+                                                                    {nombrePaciente}
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <span className={`badge ${getTipoNovedadBadgeClass(tipoNovedad)}`}>
+                                                                    {tipoNovedad}
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                <small>{novedad.descripcion || 'Sin descripción'}</small>
+                                                            </td>
+                                                            <td className="text-center">
+                                                                {novedad.evidencia_foto ? (
+                                                                    <span className="badge bg-success">
+                                                                        <FaCamera className="me-1" />
+                                                                        Foto
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="badge bg-secondary">
+                                                                        Sin evidencia
+                                                                    </span>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     )}
                 </div>
             </div>

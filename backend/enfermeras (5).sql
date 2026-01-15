@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 07-01-2026 a las 21:19:28
+-- Tiempo de generación: 15-01-2026 a las 19:49:25
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -84,6 +84,7 @@ INSERT INTO `calificaciones_enfermera` (`id`, `cliente_id`, `enfermera_id`, `sol
 
 CREATE TABLE `clientes` (
   `id` int(11) NOT NULL,
+  `usuario_id` int(11) DEFAULT NULL,
   `nombre` varchar(100) NOT NULL,
   `apellido` varchar(100) NOT NULL,
   `email` varchar(100) DEFAULT NULL,
@@ -99,11 +100,40 @@ CREATE TABLE `clientes` (
 -- Volcado de datos para la tabla `clientes`
 --
 
-INSERT INTO `clientes` (`id`, `nombre`, `apellido`, `email`, `telefono`, `direccion`, `fecha_nacimiento`, `genero`, `creado_en`, `actualizado_en`) VALUES
-(1, 'Carlos', 'Mendoza', 'carlos.mendoza@email.com', '555-1001', NULL, NULL, NULL, '2026-01-06 15:18:43', '2026-01-06 15:18:43'),
-(2, 'Ana', 'Gutiérrez', 'ana.gutierrez@email.com', '555-1002', NULL, NULL, NULL, '2026-01-06 15:18:43', '2026-01-06 15:18:43'),
-(3, 'Luis', 'Ramírez', 'luis.ramirez@email.com', '555-1003', NULL, NULL, NULL, '2026-01-06 15:18:43', '2026-01-06 15:18:43'),
-(4, 'Sofía', 'Castillo', 'sofia.castillo@email.com', '555-1004', NULL, NULL, NULL, '2026-01-06 15:18:43', '2026-01-06 15:18:43');
+INSERT INTO `clientes` (`id`, `usuario_id`, `nombre`, `apellido`, `email`, `telefono`, `direccion`, `fecha_nacimiento`, `genero`, `creado_en`, `actualizado_en`) VALUES
+(1, 4, 'Carlos', 'Mendoza', 'carlos.mendoza@email.com', '555-1001', NULL, NULL, NULL, '2026-01-06 15:18:43', '2026-01-15 18:46:58'),
+(2, 7, 'Ana', 'Gutiérrez', 'ana.gutierrez@email.com', '555-1002', NULL, NULL, NULL, '2026-01-06 15:18:43', '2026-01-15 18:46:58'),
+(3, NULL, 'Luis', 'Ramírez', 'luis.ramirez@email.com', '555-1003', NULL, NULL, NULL, '2026-01-06 15:18:43', '2026-01-06 15:18:43'),
+(4, NULL, 'Sofía', 'Castillo', 'sofia.castillo@email.com', '555-1004', NULL, NULL, NULL, '2026-01-06 15:18:43', '2026-01-06 15:18:43');
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `enfermeras`
+--
+
+CREATE TABLE `enfermeras` (
+  `id` int(11) NOT NULL,
+  `usuario_id` int(11) NOT NULL,
+  `especialidad` varchar(100) DEFAULT NULL,
+  `numero_licencia` varchar(50) DEFAULT NULL,
+  `fecha_contratacion` date DEFAULT NULL,
+  `experiencia_anos` int(11) DEFAULT 0,
+  `disponible` tinyint(1) DEFAULT 1,
+  `calificacion_promedio` decimal(3,2) DEFAULT 0.00,
+  `creado_en` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `enfermeras`
+--
+
+INSERT INTO `enfermeras` (`id`, `usuario_id`, `especialidad`, `numero_licencia`, `fecha_contratacion`, `experiencia_anos`, `disponible`, `calificacion_promedio`, `creado_en`) VALUES
+(1, 2, 'Enfermería General', 'ENF001', '2023-02-20', 5, 1, 4.50, '2026-01-15 18:46:58'),
+(2, 5, 'Pediatría', 'ENF002', '2023-03-10', 3, 1, 5.00, '2026-01-15 18:46:58'),
+(3, 6, 'Geriatría', 'ENF003', '2023-04-15', 4, 1, 0.00, '2026-01-15 18:46:58'),
+(4, 23, NULL, NULL, NULL, 0, 1, 0.00, '2026-01-15 18:46:58'),
+(5, 24, NULL, NULL, NULL, 0, 0, 0.00, '2026-01-15 18:46:58');
 
 -- --------------------------------------------------------
 
@@ -135,7 +165,8 @@ INSERT INTO `novedades_calendario` (`id`, `fecha`, `nota`, `evidencia_foto`, `us
 (8, '2026-01-07', 'falta carbon ', 'WhatsApp Image 2025-12-29 at 11.05.13 AM.jpeg', 3, '2026-01-07 19:38:34'),
 (9, '2026-01-07', 'falta carbon ', 'WhatsApp Image 2025-12-29 at 11.05.13 AM.jpeg', 3, '2026-01-07 19:38:34'),
 (10, '2026-01-09', 'no carga las geringas', 'WhatsApp Image 2025-12-29 at 11.05.13 AM.jpeg', 3, '2026-01-07 20:00:52'),
-(11, '2026-01-09', 'sali hacer pruebas\n', '5501edf1c651bea1a08623a8d2999087.jpg', 2, '2026-01-07 20:09:13');
+(11, '2026-01-09', 'sali hacer pruebas\n', '5501edf1c651bea1a08623a8d2999087.jpg', 2, '2026-01-07 20:09:13'),
+(12, '2026-01-10', 'mañana tengo que madrugar', 'WhatsApp Image 2025-12-27 at 3.23.56 PM.jpeg', 3, '2026-01-08 20:29:03');
 
 -- --------------------------------------------------------
 
@@ -159,7 +190,9 @@ CREATE TABLE `novedades_pacientes` (
 --
 
 INSERT INTO `novedades_pacientes` (`id`, `paciente_id`, `tipo_novedad`, `descripcion`, `fecha`, `evidencia_foto`, `usuario_id`, `creado_en`) VALUES
-(1, 4, 'Incidencia Médica', 'no puede caminar ', '2026-01-07', 'informe ejecutivo.docx.pdf', 3, '2026-01-07 20:02:16');
+(1, 4, 'Incidencia Médica', 'no puede caminar ', '2026-01-07', 'informe ejecutivo.docx.pdf', 3, '2026-01-07 20:02:16'),
+(2, 2, 'Administrativa', 'es de prueba', '2026-01-08', NULL, 3, '2026-01-08 20:15:23'),
+(3, 2, 'Cambio de Medicación', 'cambie la base de datos', '2026-01-08', NULL, 3, '2026-01-08 20:28:37');
 
 -- --------------------------------------------------------
 
@@ -170,6 +203,7 @@ INSERT INTO `novedades_pacientes` (`id`, `paciente_id`, `tipo_novedad`, `descrip
 CREATE TABLE `pacientes` (
   `id` int(11) NOT NULL,
   `cliente_id` int(11) DEFAULT NULL,
+  `usuario_id` int(11) DEFAULT NULL,
   `nombre` varchar(100) NOT NULL,
   `apellido` varchar(100) NOT NULL,
   `fecha_nacimiento` date DEFAULT NULL,
@@ -188,11 +222,11 @@ CREATE TABLE `pacientes` (
 -- Volcado de datos para la tabla `pacientes`
 --
 
-INSERT INTO `pacientes` (`id`, `cliente_id`, `nombre`, `apellido`, `fecha_nacimiento`, `genero`, `telefono`, `email`, `direccion`, `historial_medico`, `alergias`, `contacto_emergencia`, `tel_emergencia`, `creado_en`) VALUES
-(1, NULL, 'María', 'González', '1968-05-15', 'F', '555-1234', 'maria.gonzalez@email.com', 'Calle Principal 123', NULL, NULL, NULL, NULL, '2026-01-02 19:11:10'),
-(2, NULL, 'Juan', 'Pérez', '1955-08-22', 'M', '555-5678', 'juan.perez@email.com', 'Avenida Central 456', NULL, NULL, NULL, NULL, '2026-01-02 19:11:10'),
-(3, NULL, 'Ana', 'Rodríguez', '1972-11-30', 'F', '555-9012', 'ana.rodriguez@email.com', 'Plaza Mayor 789', NULL, NULL, NULL, NULL, '2026-01-02 19:11:10'),
-(4, NULL, 'Carlos', 'Sánchez', '1960-03-10', 'M', '555-3456', 'carlos.sanchez@email.com', 'Boulevard Norte 101', NULL, NULL, NULL, NULL, '2026-01-02 19:11:10');
+INSERT INTO `pacientes` (`id`, `cliente_id`, `usuario_id`, `nombre`, `apellido`, `fecha_nacimiento`, `genero`, `telefono`, `email`, `direccion`, `historial_medico`, `alergias`, `contacto_emergencia`, `tel_emergencia`, `creado_en`) VALUES
+(1, NULL, 4, 'María', 'González', '1968-05-15', 'F', '555-1234', 'maria.gonzalez@email.com', 'Calle Principal 123', NULL, NULL, NULL, NULL, '2026-01-02 19:11:10'),
+(2, NULL, 7, 'Juan', 'Pérez', '1955-08-22', 'M', '555-5678', 'juan.perez@email.com', 'Avenida Central 456', NULL, NULL, NULL, NULL, '2026-01-02 19:11:10'),
+(3, NULL, NULL, 'Ana', 'Rodríguez', '1972-11-30', 'F', '555-9012', 'ana.rodriguez@email.com', 'Plaza Mayor 789', NULL, NULL, NULL, NULL, '2026-01-02 19:11:10'),
+(4, NULL, NULL, 'Carlos', 'Sánchez', '1960-03-10', 'M', '555-3456', 'carlos.sanchez@email.com', 'Boulevard Norte 101', NULL, NULL, NULL, NULL, '2026-01-02 19:11:10');
 
 -- --------------------------------------------------------
 
@@ -282,7 +316,10 @@ INSERT INTO `solicitudes` (`id`, `cliente_id`, `nombre_contacto`, `telefono`, `e
 (4, NULL, 'rarararra', '987654321', 'sistemas@tenjoculturayturismo.gov.co', 'aaddada', 99, 'Cuidado Básico', 'Urgente', 'adasdadasdadsasd', 'pendiente', '2026-01-02 15:34:39'),
 (5, NULL, 'julian', '3214738869', 'ccl.ticlopez@gmail.com', 'jhonatan', 55, 'Enfermería Especializada', 'Urgente', 'asssssssssssssssssssssssssssssssssssssssss', 'pendiente', '2026-01-02 18:48:37'),
 (6, NULL, 'Juan Pérez Test', '3214738869', 'ccl.ticlopez@gmail.com', 'valentina', 99, 'Enfermería Especializada', 'Urgente', 'DFSDFSDFSFSFD', 'pendiente', '2026-01-06 15:20:01'),
-(7, NULL, 'Juan Pérez Testaaaaaaaaaaaaaaa', '1234567890', 'sistemas@tenjoculturayturismo.gov.co', 'Ana Pérez', -88, 'Enfermería Especializada', 'Urgente', 'asdasdasdasd', 'pendiente', '2026-01-06 16:04:41');
+(7, NULL, 'Juan Pérez Testaaaaaaaaaaaaaaa', '1234567890', 'sistemas@tenjoculturayturismo.gov.co', 'Ana Pérez', -88, 'Enfermería Especializada', 'Urgente', 'asdasdasdasd', 'pendiente', '2026-01-06 16:04:41'),
+(8, NULL, 'julian', '3214738869', 'ccl.ticlopez@gmail.com', 'jhonatan', 55, 'Cuidado Básico', 'Urgente', 'zzzzzzzzzzzzzzzzzzzz', 'pendiente', '2026-01-08 18:54:16'),
+(9, NULL, 'julian', '3214738869', 'ccl.ticlopez@gmail.com', 'jhonatan', 55, 'Cuidado Básico', 'Urgente', 'fghfghfghfghfghfghfghmuyumyymymmymymymymymymasdadadsadasdadsadadasdasdasdasdasdasdasdasdasdasdadfghfghfghfhfhfhfhgfghfghfgh', 'pendiente', '2026-01-08 20:10:49'),
+(10, NULL, 'julian', '3214738869', 'ccl.ticlopez@gmail.com', 'jhonatan', 55, 'Enfermería Especializada', 'Normal', 'es prueba funcional ', 'pendiente', '2026-01-08 20:27:13');
 
 -- --------------------------------------------------------
 
@@ -389,7 +426,16 @@ ALTER TABLE `calificaciones_enfermera`
 --
 ALTER TABLE `clientes`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `email` (`email`);
+  ADD UNIQUE KEY `email` (`email`),
+  ADD KEY `fk_clientes_usuario` (`usuario_id`);
+
+--
+-- Indices de la tabla `enfermeras`
+--
+ALTER TABLE `enfermeras`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_enfermera_usuario` (`usuario_id`),
+  ADD KEY `fk_enfermeras_usuario` (`usuario_id`);
 
 --
 -- Indices de la tabla `novedades_calendario`
@@ -411,7 +457,8 @@ ALTER TABLE `novedades_pacientes`
 --
 ALTER TABLE `pacientes`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `fk_pacientes_clientes` (`cliente_id`);
+  ADD KEY `fk_pacientes_clientes` (`cliente_id`),
+  ADD KEY `fk_pacientes_usuario` (`usuario_id`);
 
 --
 -- Indices de la tabla `pruebas_medicas`
@@ -476,16 +523,22 @@ ALTER TABLE `clientes`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
+-- AUTO_INCREMENT de la tabla `enfermeras`
+--
+ALTER TABLE `enfermeras`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
 -- AUTO_INCREMENT de la tabla `novedades_calendario`
 --
 ALTER TABLE `novedades_calendario`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT de la tabla `novedades_pacientes`
 --
 ALTER TABLE `novedades_pacientes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de la tabla `pacientes`
@@ -509,7 +562,7 @@ ALTER TABLE `roles`
 -- AUTO_INCREMENT de la tabla `solicitudes`
 --
 ALTER TABLE `solicitudes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT de la tabla `turnos_enfermera`
@@ -543,6 +596,18 @@ ALTER TABLE `calificaciones_enfermera`
   ADD CONSTRAINT `fk_calificaciones_enfermera_clientes` FOREIGN KEY (`cliente_id`) REFERENCES `clientes` (`id`) ON DELETE CASCADE;
 
 --
+-- Filtros para la tabla `clientes`
+--
+ALTER TABLE `clientes`
+  ADD CONSTRAINT `fk_clientes_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL;
+
+--
+-- Filtros para la tabla `enfermeras`
+--
+ALTER TABLE `enfermeras`
+  ADD CONSTRAINT `fk_enfermeras_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE;
+
+--
 -- Filtros para la tabla `novedades_calendario`
 --
 ALTER TABLE `novedades_calendario`
@@ -559,7 +624,8 @@ ALTER TABLE `novedades_pacientes`
 -- Filtros para la tabla `pacientes`
 --
 ALTER TABLE `pacientes`
-  ADD CONSTRAINT `fk_pacientes_clientes` FOREIGN KEY (`cliente_id`) REFERENCES `clientes` (`id`) ON DELETE SET NULL;
+  ADD CONSTRAINT `fk_pacientes_clientes` FOREIGN KEY (`cliente_id`) REFERENCES `clientes` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_pacientes_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL;
 
 --
 -- Filtros para la tabla `pruebas_medicas`

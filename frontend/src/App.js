@@ -257,8 +257,8 @@ const Navbar = () => {
     <nav className="navbar navbar-expand-lg navbar-dark bg-primary sticky-top shadow">
       <div className="container">
         <Link className="navbar-brand d-flex align-items-center" to="/">
-          <i className="bi bi-heart-pulse-fill me-2 fs-4"></i>
-          <span className="fw-bold">Enfermera Corazón</span>
+          {/* <i className="bi bi-heart-pulse-fill me-2 fs-4"></i> */}
+          <span className="fw-bold">ENFERMERIA MARANATHA </span>
         </Link>
 
         <button
@@ -683,6 +683,7 @@ const ConoceMasPage = () => {
                 Nuestra Misión
               </h2>
               <p className="lead">La misión de servicio de enfermeria Maranatha esta en brindar un acompañamiento personalizado en la comodidad de tu hogar, con el compromiso de mejorar la calidad de vida y el bienestar a los pacientes y familiares, desde un concepto medico, terapéutico, psicológico.
+
               </p>
             </div>
             <div className="card-body p-4">
@@ -694,6 +695,20 @@ const ConoceMasPage = () => {
                 Hacer recordar y reconocer a la sociedad  la importancia del cuidado y respeto por las personas de la tercera edad.
                 Tener unas excelentes instalaciones, donde se pueda hacer acompañamiento y cuidado a nuestros adultos mayores, hacer terapias físicas y espirituales para una recuperación integral.
                 Instruir, capacitar y actualizar al personal propio y externo en el manejo de nuevas tecnologías y procesos en la salud.
+              </p>
+            </div>
+
+            <div className="card-body p-4">
+              <h2 className="h3 fw-bold mb-3">
+                <i className="bi bi-bullseye text-primary me-2"></i>
+                Nuestra valores
+              </h2>
+              <p className="lead">Los valores con los que trabajamos en servicio de enfermería Maranatha son:
+                Amor por nuestra profesión, pacientes y familiares. La persona comprometida es generosa, busca como dar más afecto, cariño, esfuerzo, bienestar... en otras palabras: va más allá de lo que supone en principio el deber contraído. Es feliz con lo que hace hasta el punto de no ver el compromiso como una carga, sino como el medio ideal para perfeccionar su persona a través del servicio a los demás
+                Respeto por los adultos mayores y en general por los pacientes. Entendemos el respeto como el verdadero interés por las otras personas, más allá de las obligaciones explicitas que puedan existir.
+                Honestidad en la ejecución de la labor. Entendemos la honestidad como una cualidad humana que consiste en comportarse y expresarse con coherencia y sinceridad, y de acuerdo con los valores de verdad y justicia
+                Responsabilidad en el cumplimiento de la labor. Entendemos la responsabilidad como una virtud por excelencia de los seres humanos, es la capacidad individual y colectiva de actuar libre y conscientemente de tal modo que los efectos de nuestras acciones sean compatibles con el bien común.
+                Integridad en todas la áreas de nuestra vida. Entendemos por integridad a la capacidad de pensar, hablar, y ejecutar de una manera coherente  cumpliendo y respetando cada uno de nuestros valores en todo lugar y circunstancia.
 
               </p>
             </div>

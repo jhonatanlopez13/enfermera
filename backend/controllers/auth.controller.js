@@ -27,7 +27,7 @@ const authController = {
     try {
       // 1. Verificar si el usuario ya existe
       const checkQuery = 'SELECT id FROM usuarios WHERE usuario = ?';
-      
+
       db.query(checkQuery, [usuario], async (checkErr, checkResults) => {
         if (checkErr) {
           console.error('❌ Error verificando usuario:', checkErr);
@@ -44,86 +44,74 @@ const authController = {
           });
         }
 
-        // 2. Obtener ID del rol RECEPCIONISTA (por defecto)
-        const roleQuery = 'SELECT id FROM roles WHERE nombre = "RECEPCIONISTA" LIMIT 1';
-        
-        db.query(roleQuery, async (roleErr, roleResults) => {
-          if (roleErr) {
-            console.error('❌ Error obteniendo rol:', roleErr);
+        // 2. Forzar rol_id = 4 (USUARIOS) directamente sin consultar la tabla roles
+        const rol_id = 4; // ID fijo del rol USUARIOS según tu tabla
+
+        console.log('🔄 Asignando rol_id:', rol_id, '(USUARIOS)');
+
+        // 3. Encriptar contraseña
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // 4. Insertar nuevo usuario CON rol_id = 4
+        const insertQuery = `
+          INSERT INTO usuarios (usuario, nombre, password, rol_id, activo, creado_en) 
+          VALUES (?, ?, ?, ?, 1, NOW())
+        `;
+
+        db.query(insertQuery, [usuario, nombre, hashedPassword, rol_id], (insertErr, insertResult) => {
+          if (insertErr) {
+            console.error('❌ Error creando usuario:', insertErr);
             return res.status(500).json({
               success: false,
-              message: 'Error al obtener rol por defecto'
+              message: 'Error al crear usuario en la base de datos',
+              error: insertErr.message
             });
           }
 
-          if (roleResults.length === 0) {
-            return res.status(500).json({
-              success: false,
-              message: 'No se encontró el rol RECEPCIONISTA en el sistema'
-            });
-          }
+          console.log('✅ Usuario creado con ID:', insertResult.insertId, 'y rol_id:', rol_id);
 
-          const rol_id = roleResults[0].id;
-
-          // 3. Encriptar contraseña
-          const hashedPassword = await bcrypt.hash(password, 10);
-
-          // 4. Insertar nuevo usuario
-          const insertQuery = `
-            INSERT INTO usuarios (usuario, nombre, password, rol_id, activo, creado_en) 
-            VALUES (?, ?, ?, ?, 1, NOW())
+          // 5. Obtener el usuario creado con información del rol
+          const getUserQuery = `
+            SELECT 
+              u.id, 
+              u.usuario, 
+              u.nombre, 
+              u.activo, 
+              u.creado_en,
+              u.rol_id,
+              r.nombre as rol_nombre,
+              r.descripcion as rol_descripcion
+            FROM usuarios u 
+            JOIN roles r ON u.rol_id = r.id
+            WHERE u.id = ?
           `;
 
-          db.query(insertQuery, [usuario, nombre, hashedPassword, rol_id], (insertErr, insertResult) => {
-            if (insertErr) {
-              console.error('❌ Error creando usuario:', insertErr);
-              return res.status(500).json({
-                success: false,
-                message: 'Error al crear usuario en la base de datos',
-                error: insertErr.message
+          db.query(getUserQuery, [insertResult.insertId], (getErr, getResults) => {
+            if (getErr) {
+              console.error('❌ Error obteniendo usuario creado:', getErr);
+              // Aún así responder con éxito, ya que el usuario se creó
+              return res.status(201).json({
+                success: true,
+                message: 'Usuario creado exitosamente con rol USUARIOS',
+                data: {
+                  id: insertResult.insertId,
+                  usuario: usuario,
+                  nombre: nombre,
+                  rol_id: rol_id,
+                  rol_nombre: 'USUARIOS'
+                }
               });
             }
 
-            console.log('✅ Usuario creado con ID:', insertResult.insertId);
+            const user = getResults[0];
 
-            // 5. Obtener el usuario creado con información del rol
-            const getUserQuery = `
-              SELECT 
-                u.id, 
-                u.usuario, 
-                u.nombre, 
-                u.activo, 
-                u.creado_en,
-                r.nombre as rol_nombre,
-                r.descripcion as rol_descripcion
-              FROM usuarios u 
-              JOIN roles r ON u.rol_id = r.id
-              WHERE u.id = ?
-            `;
+            // Verificar que el rol asignado sea USUARIOS
+            console.log('📊 Usuario creado con rol:', user.rol_nombre, '(rol_id:', user.rol_id, ')');
 
-            db.query(getUserQuery, [insertResult.insertId], (getErr, getResults) => {
-              if (getErr) {
-                console.error('❌ Error obteniendo usuario creado:', getErr);
-                // Aún así responder con éxito, ya que el usuario se creó
-                return res.status(201).json({
-                  success: true,
-                  message: 'Usuario creado exitosamente',
-                  data: {
-                    id: insertResult.insertId,
-                    usuario: usuario,
-                    nombre: nombre,
-                    rol_nombre: 'RECEPCIONISTA'
-                  }
-                });
-              }
-
-              const user = getResults[0];
-              
-              res.status(201).json({
-                success: true,
-                message: 'Usuario registrado exitosamente',
-                data: user
-              });
+            res.status(201).json({
+              success: true,
+              message: 'Usuario registrado exitosamente como USUARIO',
+              data: user
             });
           });
         });
@@ -138,7 +126,7 @@ const authController = {
     }
   },
 
-  // LOGIN DE USUARIO
+  // LOGIN DE USUARIO - SIN CAMBIOS
   login: async (req, res) => {
     const { usuario, password } = req.body;
 
@@ -176,7 +164,7 @@ const authController = {
 
       try {
         const passwordMatch = await bcrypt.compare(password, user.password);
-        
+
         if (!passwordMatch) {
           return res.status(401).json({
             success: false,
